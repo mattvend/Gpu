@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include "ImCu.h"
+#include "cuda_profiler_api.h"
 #include <time.h>
 #include <iostream>
 using namespace std;
@@ -43,10 +44,17 @@ int main()
 //	}
 	// ImCu myimage2 = ImCu(myimage);
 	
+	cudaProfilerInitialize("counters.txt","C:\Users\beq06486\Desktop\Gpu\Debug\prof.txt",cudaCSV); //Initialize profiling,set the counters/options in the config file
+	cudaProfilerStart();
+
+
+
+
+
 	const clock_t begin_time = clock();
 
 	for (i = 0; i < iterations; i++){
-		Instances[i].CUDA_InterpolateNN(8000, 4000);
+		Instances[i].CUDA_InterpolateBilinear(8000, 4000);
 	}
 //	myimage2.CUDA_InterpolateBilinear(4000, 2000);
 
@@ -57,13 +65,13 @@ int main()
 	const clock_t begin_time2 = clock();
 
 	for (i = 0; i < iterations; i++){
-		Instances2[i].InterpolateNN(8000, 4000);
+		Instances2[i].InterpolateBilinear(8000, 4000);
 	}
 	//	myimage2.CUDA_InterpolateBilinear(4000, 2000);
 
 	// do something
 	std::cout << float(clock() - begin_time2) / CLOCKS_PER_SEC << '\n';;
-
+	cudaProfilerStop();
 	return 0;
 }
 

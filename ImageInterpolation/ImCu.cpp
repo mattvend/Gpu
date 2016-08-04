@@ -39,10 +39,12 @@ ImCu::ImCu(unsigned short width, unsigned short height, unsigned short bpp, unsi
 	if (8 == bpp)
 	{
 		pxl = new char[sizeof(char) * width *height *dimension];
+		memset(pxl, 255, sizeof(char) * width *height *dimension);
 	}
 	else if (16 == bpp)
 	{
 		pxl = new unsigned short[sizeof(unsigned short) * width *height *dimension];
+		memset(pxl, 255, sizeof(unsigned short) * width *height *dimension);
 	}
 }
 
