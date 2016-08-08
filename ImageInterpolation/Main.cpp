@@ -30,7 +30,7 @@
 #include <iostream>
 using namespace std;
 
-int main()
+int main(int argc, char** argv) 
 {
 	//int i;
 	int iterations = 10;
@@ -46,6 +46,35 @@ int main()
 	Image->Save2RawFile("popo.dat");
 
 #if 0
+
+	char *device = "CPU";
+	int nb_iterations;
+
+	Initialize instance
+	if()
+	{
+	
+	}
+	else()
+	{
+	
+	}
+
+	Copy constructor
+
+
+
+	Loop over iteartions
+	for ()
+	{
+	
+	}
+
+
+	Write file result
+
+
+
 
 	ImCu Instances[10] = { ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat") };
 	ImCu Instances2[10] = { ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat") };

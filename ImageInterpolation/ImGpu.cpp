@@ -58,29 +58,49 @@ ImGpu::ImGpu(unsigned short width, unsigned short height, unsigned short bpp, un
 Error:
 	cudaFree(dev_pxl);
 }
-#if 0
+
 ImGpu::ImGpu(const ImGpu &obj)
 {
 	width = obj.width;
 	height = obj.height;
 	bpp = obj.bpp;
 	dimension = 1;
-	pxl = 0;
+
 	cudaError_t cudaStatus;
 
-	/* Allocate memory for the pixels */
+	/* Allocate memory for the pixels on the Gpu */
 	if (8 == bpp)
 	{
-		pxl = new char[sizeof(char) * width *height *dimension];
+		cudaStatus = cudaMalloc((void**)&dev_pxl, width *height *dimension * sizeof(char));
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaMalloc failed!");
+			goto Error;
+		}
+
+		cudaStatus = cudaMemcpy(dev_pxl, obj.dev_pxl, width *height *dimension * sizeof(char), cudaMemcpyDeviceToDevice);
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaMemcpy failed!");
+			goto Error;
+		}
 	}
 	else if (16 == bpp)
 	{
-		pxl = new unsigned short[sizeof(unsigned short) * width *height *dimension];
+		cudaStatus = cudaMalloc((void**)&dev_pxl, width *height *dimension * sizeof(unsigned short));
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaMalloc failed!");
+			goto Error;
+		}
+		cudaStatus = cudaMemcpy(dev_pxl, obj.dev_pxl, width *height *dimension * sizeof(unsigned short), cudaMemcpyDeviceToDevice);
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "cudaMemcpy failed!");
+			goto Error;
+		}
 	}
 
-	memcpy(pxl, obj.pxl, sizeof(char) * width *height *dimension);
+Error:
+	cudaFree(dev_pxl);
 }
-#endif
+
 
 ImGpu::ImGpu(const char* filename)
 {
