@@ -22,66 +22,27 @@
 /* SOFTWARE.                                                                      */
 /**********************************************************************************/
 
-#include <stdio.h>
-#include "ImCpu.h"
-#include "ImGpu.h"
-#include "cuda_profiler_api.h"
-#include <time.h>
-#include <iostream>
-using namespace std;
+#pragma once
 
-int main()
+#include "Im.h"
+
+class ImCpu: public Im
 {
-	//int i;
-	int iterations = 10;
+public:
+	ImCpu(unsigned short width, unsigned short height, unsigned short bpp, unsigned short dimension);
+	ImCpu(const char* filename);
+	ImCpu(const ImCpu &); // Copy constructor
+	~ImCpu(void);
 	
-	Im *Image = new ImGpu("512x512x8x1_lena.dat");
-	Image->InterpolateBilinear(8000, 4000);
-	Image->Save2RawFile("popo.dat");
+	void InterpolateNN(unsigned short new_width, unsigned short new_height);
+	void InterpolateBilinear(unsigned short new_width, unsigned short new_height);
+	void Save2RawFile(const char* filename);
 
-#if 0
-
-	ImCu Instances[10] = { ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat") };
-	ImCu Instances2[10] = { ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat") };
-
-	//ImCu myimage = ImCu("512x512x8x1_lena.dat");
-	
-	
-//	for (i = 0; i < iterations; i++){
-//		Instances[i] = ImCu(myimage);
-//	}
-	// ImCu myimage2 = ImCu(myimage);
-	
-	cudaProfilerInitialize("counters.txt","C:\Users\beq06486\Desktop\Gpu\Debug\prof.txt",cudaCSV); //Initialize profiling,set the counters/options in the config file
-	cudaProfilerStart();
-
-
-
-
-
-	const clock_t begin_time = clock();
-
-	for (i = 0; i < iterations; i++){
-		Instances[i].CUDA_InterpolateBilinear(8000, 4000);
-	}
-//	myimage2.CUDA_InterpolateBilinear(4000, 2000);
-
-	// do something
-	std::cout << float(clock() - begin_time) / CLOCKS_PER_SEC << '\n';
-	Instances[0].Save2RawFile("popo.dat");
-	
-	const clock_t begin_time2 = clock();
-
-	for (i = 0; i < iterations; i++){
-		Instances2[i].InterpolateBilinear(8000, 4000);
-	}
-	//	myimage2.CUDA_InterpolateBilinear(4000, 2000);
-
-	// do something
-	std::cout << float(clock() - begin_time2) / CLOCKS_PER_SEC << '\n';;
-	cudaProfilerStop();
-
-#endif
-	return 0;
-}
+private:
+	unsigned short width;      /* Image Width in pixels*/
+	unsigned short height;     /* Image Height in pixels*/
+	unsigned short bpp;        /* Bits per Pixel. Possible values are 8 or 16 */
+	unsigned short dimension;  /* Dimension of the image, or numbers of channels*/
+	void*   pxl;               /* Actual pixels stored in a row array */
+};
 
