@@ -25,8 +25,6 @@
 #include "ImGpu.h"
 #include <stdio.h>
 #include <iostream>
-//#include "cuda_runtime.h"
-//#include "device_launch_parameters.h"
 
 __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFactor, float HeightScaleFactor, unsigned short new_width, unsigned short width)
 {
@@ -194,33 +192,12 @@ __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned sho
 
 void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 {
-	void *new_pxl;
 	void *dev_new_pxl;
-	void *dev_cur_pxl;
-
 	cudaError_t cudaStatus;
-
 
 	/* Compute scaling factor for each dimension */
 	float HeightScaleFactor = ((float)height / (float)new_height);
 	float WidthScaleFactor = ((float)width / (float)new_width);
-
-	/* Allocate memory for the pixels on the CPU */
-	if (8 == bpp)
-	{
-		new_pxl = new char[sizeof(char) * new_width *new_height *dimension];
-	}
-	else if (16 == bpp)
-	{
-		new_pxl = new unsigned short[sizeof(unsigned short) * new_width *new_height *dimension];
-	}
-
-	// Choose which GPU to run on, change this on a multi-GPU system.
-	cudaStatus = cudaSetDevice(0);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-		goto Error;
-	}
 
 	// Allocate GPU buffers for the buffers of pixels on the GPU.
 	cudaStatus = cudaMalloc((void**)&dev_new_pxl, new_width *new_height *dimension * sizeof(char));
@@ -229,31 +206,11 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		goto Error;
 	}
 
-	cudaStatus = cudaMalloc((void**)&dev_cur_pxl, width *height *dimension * sizeof(char));
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(dev_cur_pxl, pxl, width *height *dimension * sizeof(char), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-	cudaStatus = cudaMemcpy(dev_new_pxl, new_pxl, new_width *new_height *dimension * sizeof(char), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-
 	// Launch a kernel on the GPU with one thread for each element.
 	{
 		dim3 threadsPerBlock(16, 16);  // 64 threads
 		dim3 numBlocks((new_width + threadsPerBlock.x - 1) / threadsPerBlock.x, (new_height + threadsPerBlock.y - 1) / threadsPerBlock.y);
-		KernelInterpolateNN <<< numBlocks, threadsPerBlock >>> (dev_cur_pxl, dev_new_pxl, WidthScaleFactor, HeightScaleFactor, new_width, width);
+		KernelInterpolateNN <<< numBlocks, threadsPerBlock >>> (dev_pxl, dev_new_pxl, WidthScaleFactor, HeightScaleFactor, new_width, width);
 	}
 	
 	// Check for any errors launching the kernel
@@ -271,67 +228,27 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		goto Error;
 	}
 
-	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(new_pxl, dev_new_pxl, new_width *new_height *dimension * sizeof(char), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-	delete(pxl);
-	pxl = new_pxl;
+	// Free all resources 
+	cudaFree(dev_pxl);
+	dev_pxl = dev_new_pxl;
 
 	width = new_width;
 	height = new_height;
 
+	return;
 Error:
 	cudaFree(dev_new_pxl);
-	cudaFree(dev_cur_pxl);
-
-	return;
 }
 
 void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_height)
 {
-	void *new_pxl;
 	void *dev_new_pxl;
-	void *dev_cur_pxl;
-
 	cudaError_t cudaStatus;
-
-	/* Allocate memory for the pixels on the CPU */
-	if (8 == bpp)
-	{
-		new_pxl = new char[sizeof(char) * new_width *new_height *dimension];
-	}
-	else if (16 == bpp)
-	{
-		new_pxl = new unsigned short[sizeof(unsigned short) * new_width *new_height *dimension];
-	}
 
 	// Allocate GPU buffers for the buffers of pixels on the GPU.
 	cudaStatus = cudaMalloc((void**)&dev_new_pxl, new_width *new_height *dimension * sizeof(char));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	cudaStatus = cudaMalloc((void**)&dev_cur_pxl, width *height *dimension * sizeof(char));
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMalloc failed!");
-		goto Error;
-	}
-
-	// Copy input vectors from host memory to GPU buffers.
-	cudaStatus = cudaMemcpy(dev_cur_pxl, pxl, width *height *dimension * sizeof(char), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-	cudaStatus = cudaMemcpy(dev_new_pxl, new_pxl, new_width *new_height *dimension * sizeof(char), cudaMemcpyHostToDevice);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
 		goto Error;
 	}
 
@@ -344,7 +261,7 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 
 		dim3 threadsPerBlock(8, 8);  // 64 threads
 		dim3 numBlocks((new_width + threadsPerBlock.x - 1) / threadsPerBlock.x, (new_height + threadsPerBlock.y - 1) / threadsPerBlock.y);
-		KernelInterpolateBilinear << < numBlocks, threadsPerBlock >> > (dev_cur_pxl, dev_new_pxl, new_width, width, new_height, height, WidthScaleFactor, HeightScaleFactor);
+		KernelInterpolateBilinear << < numBlocks, threadsPerBlock >> > (dev_pxl, dev_new_pxl, new_width, width, new_height, height, WidthScaleFactor, HeightScaleFactor);
 	}
 
 	// Check for any errors launching the kernel
@@ -362,22 +279,14 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		goto Error;
 	}
 
-	// Copy output vector from GPU buffer to host memory.
-	cudaStatus = cudaMemcpy(new_pxl, dev_new_pxl, new_width *new_height *dimension * sizeof(char), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaMemcpy failed!");
-		goto Error;
-	}
-
-	delete(pxl);
-	pxl = new_pxl;
+	// Free all resources 
+	cudaFree(dev_pxl);
+	dev_pxl = dev_new_pxl;
 
 	width = new_width;
 	height = new_height;
 
+	return;
 Error:
 	cudaFree(dev_new_pxl);
-	cudaFree(dev_cur_pxl);
-
-	return;
 }

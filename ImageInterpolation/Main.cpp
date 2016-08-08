@@ -34,7 +34,13 @@ int main()
 {
 	//int i;
 	int iterations = 10;
-	
+	cudaError_t cudaStatus;
+
+	cudaStatus = cudaSetDevice(0);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
+	}
+
 	Im *Image = new ImGpu("512x512x8x1_lena.dat");
 	Image->InterpolateBilinear(8000, 4000);
 	Image->Save2RawFile("popo.dat");

@@ -99,7 +99,8 @@ private:
 	unsigned short height;     /* Image Height in pixels*/
 	unsigned short bpp;        /* Bits per Pixel. Possible values are 8 or 16 */
 	unsigned short dimension;  /* Dimension of the image, or numbers of channels*/
-	void*   pxl;               /* Actual pixels stored in a row array */
+//	void*   pxl;               /* CPU pixels, for temporary usActual pixels stored in a row array */
+	void*   dev_pxl;           /* Actual pixels stored on the GPU */
 };
 
 
