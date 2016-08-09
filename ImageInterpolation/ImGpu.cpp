@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <iostream>
 
-
 ImGpu::ImGpu(unsigned short width, unsigned short height, unsigned short bpp, unsigned short dimension)
 {
 	width = width;
@@ -96,7 +95,7 @@ ImGpu::ImGpu(const ImGpu &obj)
 			goto Error;
 		}
 	}
-
+	return;
 Error:
 	cudaFree(dev_pxl);
 }

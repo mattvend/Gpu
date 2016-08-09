@@ -48,7 +48,7 @@ ImCpu::ImCpu(unsigned short width, unsigned short height, unsigned short bpp, un
 	}
 }
 
-ImCpu::ImCpu(const ImCpu &obj)
+ImCpu::ImCpu(const ImCpu &obj)// :Im(obj)
 {
 	width = obj.width;
 	height = obj.height;
@@ -169,7 +169,6 @@ void ImCpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 			XRounded = (unsigned short)xdest;
 			YRounded = (unsigned short)ydest;
 
-			//           ImPxl(ImgDest,X,Y) = ImPxl(ImgSrc,XRounded,YRounded); 
 			*((char*)new_pxl + X + Y*new_width) = *((char*)pxl + XRounded + YRounded*width);
 		}
 	}

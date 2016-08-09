@@ -33,6 +33,8 @@ public:
 	ImCpu(const char* filename);
 	ImCpu(const ImCpu &); // Copy constructor
 	~ImCpu(void);
+
+	virtual ImCpu* clone() const { return new ImCpu(*this); };
 	
 	void InterpolateNN(unsigned short new_width, unsigned short new_height);
 	void InterpolateBilinear(unsigned short new_width, unsigned short new_height);

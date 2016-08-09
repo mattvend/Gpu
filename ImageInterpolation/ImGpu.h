@@ -89,6 +89,8 @@ public:
 	ImGpu(const char* filename);
 	ImGpu(const ImGpu &); // Copy constructor
 	~ImGpu(void);
+	
+	virtual ImGpu* clone() const { return new ImGpu(*this); };
 
 	void InterpolateNN(unsigned short new_width, unsigned short new_height);
 	void InterpolateBilinear(unsigned short new_width, unsigned short new_height);

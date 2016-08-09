@@ -32,91 +32,93 @@ using namespace std;
 
 int main(int argc, char** argv) 
 {
-	//int i;
-	int iterations = 10;
+	Im *Im1,*Im2;
 	cudaError_t cudaStatus;
+	clock_t begin_time, end_time = 0;
+	int i;
+	
+	char *device_type = "gpu";
+	char *interpolation_type = "nn";
+	int iterations = 10;
+	int new_width = 8000;
+	int new_height = 4000;
 
+
+	//double ff = atof(argv[1]);
+	//std::cout << "float number: " << ff << '\n';
+	//int a = ff + 0.5;
+	//std::cout << "Integer number: " << a << '\n';
+	//a = ff - 0.5;
+	//std::cout << "Integer number: " << a << '\n';
+	//return 0;
+
+
+
+
+	if (argc > 1 ){
+		device_type = argv[1];
+		iterations = atoi(argv[2]);
+		interpolation_type = argv[3];
+		std::cout << "Using device: " << device_type <<'\n';
+		std::cout << "Nb iterations: " << iterations << '\n';
+		std::cout << "Interplation types: " << interpolation_type << '\n';
+	}
+
+	//
+	// Initialise GPU
+	//
 	cudaStatus = cudaSetDevice(0);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
 	}
 
-	Im *Image = new ImGpu("512x512x8x1_lena.dat");
-	Image->InterpolateBilinear(8000, 4000);
-	Image->Save2RawFile("popo.dat");
-
-#if 0
-
-	char *device = "CPU";
-	int nb_iterations;
-
-	Initialize instance
-	if()
-	{
-	
+	//
+	// Init instance, depending on process happening on GPU or CPU
+	//
+	if (strcmp(device_type, "cpu") == 0){
+		Im1 = new ImCpu("512x512x8x1_lena.dat");
+		std::cout << "Creating Imcpu instance" << '\n';
 	}
-	else()
-	{
-	
+	else{
+		Im1 = new ImGpu("512x512x8x1_lena.dat");
+		std::cout << "Creating Imgpu instance" << '\n';
 	}
 
-	Copy constructor
-
-
-
-	Loop over iteartions
-	for ()
-	{
-	
-	}
-
-
-	Write file result
-
-
-
-
-	ImCu Instances[10] = { ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat") };
-	ImCu Instances2[10] = { ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat"), ImCu("512x512x8x1_lena.dat") };
-
-	//ImCu myimage = ImCu("512x512x8x1_lena.dat");
-	
-	
-//	for (i = 0; i < iterations; i++){
-//		Instances[i] = ImCu(myimage);
-//	}
-	// ImCu myimage2 = ImCu(myimage);
-	
-	cudaProfilerInitialize("counters.txt","C:\Users\beq06486\Desktop\Gpu\Debug\prof.txt",cudaCSV); //Initialize profiling,set the counters/options in the config file
-	cudaProfilerStart();
-
-
-
-
-
-	const clock_t begin_time = clock();
-
+	//
+	// Perform and profile interpolation x times 
+	//
+	begin_time = clock();
 	for (i = 0; i < iterations; i++){
-		Instances[i].CUDA_InterpolateBilinear(8000, 4000);
+		Im2 = Im1->clone();
+		if (strcmp(interpolation_type, "nn") == 0)
+		{
+			Im2->InterpolateNN(8000, 4000);
+		}
+		else
+		{
+			Im2->InterpolateBilinear(8000, 4000);
+		}
+		delete(Im2);
 	}
-//	myimage2.CUDA_InterpolateBilinear(4000, 2000);
+	end_time = clock() - begin_time;
 
-	// do something
-	std::cout << float(clock() - begin_time) / CLOCKS_PER_SEC << '\n';
-	Instances[0].Save2RawFile("popo.dat");
+	std::cout << float(end_time) / CLOCKS_PER_SEC << '\n';
+
+	//
+	// Save processed imaged
+	//
+	if (strcmp(interpolation_type, "nn") == 0)
+	{
+		Im1->InterpolateNN(8000, 4000);
+	}
+	else
+	{
+		Im1->InterpolateBilinear(8000, 4000);
+	}
+
+	Im1->Save2RawFile("popo.dat");
+
+	exit(0);
 	
-	const clock_t begin_time2 = clock();
-
-	for (i = 0; i < iterations; i++){
-		Instances2[i].InterpolateBilinear(8000, 4000);
-	}
-	//	myimage2.CUDA_InterpolateBilinear(4000, 2000);
-
-	// do something
-	std::cout << float(clock() - begin_time2) / CLOCKS_PER_SEC << '\n';;
-	cudaProfilerStop();
-
-#endif
-	return 0;
 }
 
