@@ -39,12 +39,14 @@ public:
 	void InterpolateNN(unsigned short new_width, unsigned short new_height);
 	void InterpolateBilinear(unsigned short new_width, unsigned short new_height);
 	void Save2RawFile(const char* filename);
+	void PrintRawFileName();
 
 private:
-	unsigned short width;      /* Image Width in pixels*/
-	unsigned short height;     /* Image Height in pixels*/
-	unsigned short bpp;        /* Bits per Pixel. Possible values are 8 or 16 */
-	unsigned short dimension;  /* Dimension of the image, or numbers of channels*/
-	void*   pxl;               /* Actual pixels stored in a row array */
+	unsigned short width;       /* Image Width in pixels*/
+	unsigned short height;      /* Image Height in pixels*/
+	unsigned short bpp;         /* Bits per Pixel. Possible values are 8 or 16 */
+	unsigned short dimension;   /* Dimension of the image, or numbers of channels*/
+	void*   pxl;                /* Actual pixels stored in a row array */
+	char    raw_file_name[256]; /* raw file full file name when saved on the disk */
 };
 

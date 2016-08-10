@@ -39,29 +39,25 @@ int main(int argc, char** argv)
 	
 	char *device_type = "gpu";
 	char *interpolation_type = "nn";
+	char *in_file = "512x512x8x1_lena.dat";
+	char *out_file = "lena_out.dat";
+
 	int iterations = 10;
 	int new_width = 8000;
 	int new_height = 4000;
-
-
-	//double ff = atof(argv[1]);
-	//std::cout << "float number: " << ff << '\n';
-	//int a = ff + 0.5;
-	//std::cout << "Integer number: " << a << '\n';
-	//a = ff - 0.5;
-	//std::cout << "Integer number: " << a << '\n';
-	//return 0;
-
-
-
-
+	
 	if (argc > 1 ){
 		device_type = argv[1];
 		iterations = atoi(argv[2]);
 		interpolation_type = argv[3];
+		in_file  = argv[4];
+		out_file = argv[5];
+
 		std::cout << "Using device: " << device_type <<'\n';
 		std::cout << "Nb iterations: " << iterations << '\n';
 		std::cout << "Interplation types: " << interpolation_type << '\n';
+		std::cout << "Input file: " << in_file << '\n';
+		std::cout << "Output file: " << out_file << '\n';
 	}
 
 	//
@@ -76,11 +72,11 @@ int main(int argc, char** argv)
 	// Init instance, depending on process happening on GPU or CPU
 	//
 	if (strcmp(device_type, "cpu") == 0){
-		Im1 = new ImCpu("512x512x8x1_lena.dat");
+		Im1 = new ImCpu(in_file);
 		std::cout << "Creating Imcpu instance" << '\n';
 	}
 	else{
-		Im1 = new ImGpu("512x512x8x1_lena.dat");
+		Im1 = new ImGpu(in_file);
 		std::cout << "Creating Imgpu instance" << '\n';
 	}
 
@@ -116,7 +112,8 @@ int main(int argc, char** argv)
 		Im1->InterpolateBilinear(8000, 4000);
 	}
 
-	Im1->Save2RawFile("popo.dat");
+	Im1->Save2RawFile(out_file);
+	Im1->PrintRawFileName();
 
 	exit(0);
 	

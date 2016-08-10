@@ -38,8 +38,8 @@ __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFa
 //	XRounded = (unsigned short)floor((float)X*WidthScaleFactor);
 //	YRounded = (unsigned short)floor((float)Y*HeightScaleFactor);
 
-	XRounded = (unsigned short)__fmul_rd((float)X, WidthScaleFactor);
-	YRounded = (unsigned short)__fmul_rd((float)Y, HeightScaleFactor);
+	XRounded = (unsigned short)__fmul_rd((float)(X+0.5), WidthScaleFactor);
+	YRounded = (unsigned short)__fmul_rd((float)(Y+0.5), HeightScaleFactor);
 
 	*((char*)new_pxl + X + Y*new_width) = *((char*)pxl + XRounded + YRounded*width);
 
@@ -67,11 +67,11 @@ __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned sho
 	/*
 	* xdest and ydest are coordinates of destination pixel in the original image
 	*/
-//	xdest = (float)(X + .5)*WidthScaleFactor;
-//	ydest = (float)(Y + .5)*HeightScaleFactor;
+	xdest = (float)(X + .5)*WidthScaleFactor;
+	ydest = (float)(Y + .5)*HeightScaleFactor;
 
-	xdest = __fmul_rd((float)(X + .5), WidthScaleFactor);
-	ydest = __fmul_rd((float)(Y + .5), HeightScaleFactor);
+//	xdest = __fmul_rd((float)(X + .5), WidthScaleFactor);
+//	ydest = __fmul_rd((float)(Y + .5), HeightScaleFactor);
 
 	//  printf("Xdest=%f Ydest=%f ",xdest,ydest);
 

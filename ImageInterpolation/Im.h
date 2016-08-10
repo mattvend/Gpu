@@ -27,14 +27,17 @@
 class Im
 {
 public:
+	// Constructors
 	Im(){};
 	Im(unsigned short width, unsigned short height, unsigned short bpp, unsigned short dimension);
 
-
-//public:
+	// Interface under test
 	virtual void InterpolateNN(unsigned short new_width, unsigned short new_height) = 0;
 	virtual void InterpolateBilinear(unsigned short new_width, unsigned short new_height) = 0;
+
+	// Convenience functions
 	virtual void Save2RawFile(const char* filename) = 0;
 	virtual Im* clone() const = 0;
+	virtual void PrintRawFileName() = 0;
 };
 

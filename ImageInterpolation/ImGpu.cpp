@@ -171,7 +171,6 @@ ImGpu::~ImGpu(void)
 
 void ImGpu::Save2RawFile(const char* filename)
 {
-	char name[256];
 	FILE *fp;
 	void *pxl = 0;
 	cudaError_t cudaStatus;
@@ -186,9 +185,9 @@ void ImGpu::Save2RawFile(const char* filename)
 		pxl = new unsigned short[sizeof(unsigned short) * width *height *dimension];
 	}
 
-	sprintf_s(name, "%dx%dx%dx%d_%s", width, height, bpp, dimension, filename);
+	sprintf_s(raw_file_name, "%dx%dx%dx%d_%s", width, height, bpp, dimension, filename);
 
-	fopen_s(&fp, name, "wb"); /* open for writing */
+	fopen_s(&fp, raw_file_name, "wb"); /* open for writing */
 
 	if (8 == bpp)
 	{
@@ -216,4 +215,9 @@ Error:
 	delete(pxl);
 
 	return;
+}
+
+void ImGpu::PrintRawFileName()
+{
+	std::cout << raw_file_name << '\n';
 }

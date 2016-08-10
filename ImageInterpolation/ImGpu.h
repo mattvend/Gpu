@@ -95,7 +95,8 @@ public:
 	void InterpolateNN(unsigned short new_width, unsigned short new_height);
 	void InterpolateBilinear(unsigned short new_width, unsigned short new_height);
 	void Save2RawFile(const char* filename);
-
+	void PrintRawFileName();
+	
 private:
 	unsigned short width;      /* Image Width in pixels*/
 	unsigned short height;     /* Image Height in pixels*/
@@ -103,6 +104,7 @@ private:
 	unsigned short dimension;  /* Dimension of the image, or numbers of channels*/
 //	void*   pxl;               /* CPU pixels, for temporary usActual pixels stored in a row array */
 	void*   dev_pxl;           /* Actual pixels stored on the GPU */
+	char raw_file_name[256]; /* raw file full file name when saved on the disk */
 };
 
 

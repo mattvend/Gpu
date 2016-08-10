@@ -113,12 +113,12 @@ ImCpu::~ImCpu(void)
 
 void ImCpu::Save2RawFile(const char* filename)
 {
-	char name[256];
+	//char name[256];
 	FILE *fp;
 
-	sprintf_s(name, "%dx%dx%dx%d_%s", width, height, bpp, dimension, filename);
+	sprintf_s(raw_file_name, "%dx%dx%dx%d_%s", width, height, bpp, dimension, filename);
 
-	fopen_s(&fp, name, "wb"); /* open for writing */
+	fopen_s(&fp, raw_file_name, "wb"); /* open for writing */
 
 	if (8 == bpp)
 	{
@@ -134,6 +134,10 @@ void ImCpu::Save2RawFile(const char* filename)
 	return;
 }
 
+void ImCpu::PrintRawFileName()
+{
+	std::cout << raw_file_name << '\n';
+}
 
 void ImCpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 {
@@ -182,7 +186,6 @@ void ImCpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 	return;
 }
 
-//#define ImPxl(IM,X,Y,W)     *((char*)IM + (X) + (Y)*W)
 #define ImPxl(IM,X,Y,W)     *((unsigned char*)IM + (X) + (Y)*W)
 
 void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_height)
