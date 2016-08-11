@@ -1,7 +1,7 @@
 # Gpu
 
 ## Goal of this project
-Benchmark interpolation algorithms running on GPU againt their CPU version. Of course, I had to use Lena for this:  
+Benchmark interpolation algorithms running on GPU againt their CPU version. Of course, I had to use Lena for this.  
   
 ![Lena][Lena]
 
@@ -12,7 +12,7 @@ For the moment, benchmarking is only done with the Nearest Neighbor and Bilinear
 hardware
 --------
 - CPU: PC i7 Intel core @ 3.60 GHz,  64-bits Operating System, 16 GB memory 
-- GPU: NVIDIA Quadro 600, which is a really old card
+- GPU: NVIDIA [Quadro 600], which is a really old card
 
 Software
 --------
@@ -21,8 +21,7 @@ Software
 
 ## Building
 
-Open the MSVC solution and simply build the Release version.  
-ImageInterpolation.exe should appear in the Release directory
+Open the MSVC solution and simply build the Release version. ImageInterpolation.exe should appear in the Release directory.
 
 ## Architecture and design considerations
 
@@ -37,6 +36,9 @@ The Im abstract class represents our image class with two interpolation methods:
 ImCpu and ImGpu implement the interface, with code running respectively on the CPU and on the GPU
 
 The test application uses ImCpu or ImGpu depending on the received arguments. All remaining code stays the same as both classes implement the same abstract interface
+
+### Timing
+I deliberately choosed to exclude the memory transfers between the Gpu and the Host when counting the time. On a more complex processing chain, pixels do not travel constantly from the Gpu to the Host between 2 operations. They are only retrieved when needed on the host. This is why I do not count memory transfers between the Host and the Gpu.
 
 ## Running the benchmark
 Once test application is built, simply execute the python script with the following command: 
@@ -57,7 +59,7 @@ Here are the results, produced by Benchmark.py
 - CUDA code can be improved using intrinsics
 
 ## Bonus
-I found out the ![xkcd][xkcd] style while playing with Matplotlib ... I could not help myself to use it. Don't forget to checkout [Benchmark.py] to see how it works.
+I found out the ![xkcd][xkcd] style while playing with ![Matplotlib][Matplotlib] ... I could not help myself to use it. Don't forget to checkout [Benchmark.py] to see how it works.
 
 [Lena]: http://www.cosy.sbg.ac.at/~pmeerw/Watermarking/lena_color.gif "Lena"
 [Results]: /Release/CpuVsGpu.png
@@ -66,3 +68,4 @@ I found out the ![xkcd][xkcd] style while playing with Matplotlib ... I could no
 [Quadro 600]: http://www.nvidia.com/object/product-quadro-600-us.html
 [Quadro 600 review]: https://www.dpreview.com/forums/post/53081447
 [Benchmark.py]: /Release/Benchmark.py
+[Matplotlib]: http://matplotlib.org/
