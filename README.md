@@ -2,6 +2,7 @@
 
 ## Goal of this project
 Benchmark interpolation algorithms running on GPU againt their CPU version. Of course, I had to use Lena for this:  
+  
 ![Lena][Lena]
 
 For the moment, benchmarking is only done with the Nearest Neighbor and Bilinear interpolations
@@ -20,7 +21,7 @@ Software
 
 ## Building
 
-Open the solution with msvc and simply build the Release version.  
+Open the MSVC solution and simply build the Release version.  
 ImageInterpolation.exe should appear in the Release directory
 
 ## Architecture and design considerations
@@ -32,30 +33,28 @@ The test application returns to the user an elapsed duration in seconds and a fi
 A simple Python script exercise the test app and hence can benchamrk one solution against the other
 
 ### C++
-The Im abstract class represents our image class with two interpolation methods: NN and bilinear
+The Im abstract class represents our image class with two interpolation methods: NN and bilinear  
 ImCpu and ImGpu implement the interface, with code running respectively on the CPU and on the GPU
 
 The test application uses ImCpu or ImGpu depending on the received arguments. All remaining code stays the same as both classes implement the same abstract interface
 
-## Running the scripts
+## Running the benchmark
 Once test application is built, simply execute the python script with the following command: 
 ```python
-python ![Benchmark.py][Benchmark.py]
+python Benchmark.py
 ```
 
-## Conclusion
+## Results
 Here are the results, produced by Benchmark.py
 ![Results][Results]
 
 ## Comments
-1. The Gpu version of the NN interpolation is only 2 times faster when the Bilinear interpolation runs 3 times faster. It is a bit disapointing as I was expecting better performances on the GPU for both interpolations
-2. I only did the tests for the Lena image (512*512), interpolated to a (8000,4000) image. Different interpolation parameters should provide a better overall picture
-3. Both interpolation algorithms are done in a naive way
-4. For some parameters, there are still issues with GPU interpolation
-
-### Possibles explanations
-1. Cpu vs Gpu seems to be tricky as the figure obtained depends obviously on the setup. In my case, as the GPU used is an old one (5 years older than the CPU, huge difference in the tech world), it makes sense to have a CPU that can compete against a GPU. The ![Quadro 600][Quadro 600] card has only 96 cores, and is definitely not a fast card, see this review: ![Quadro 600 review][Quadro 600 review]
-2. GPU Optimisation could probably be better, using intrinsics should help.
+- The Gpu version of the NN interpolation is only 2 times faster when the Bilinear interpolation runs 3 times faster. It is a bit disapointing as I was expecting better performances on the GPU for both interpolations
+- I only did the tests for the Lena image (512*512), interpolated to a (8000,4000) image. Different interpolation parameters should provide a better overall picture
+- Both interpolation algorithms are done in a naive way
+- For some parameters, there are still issues with GPU interpolation
+- Cpu vs Gpu benchamrking seems to be tricky as the figures obtained depends obviously on the setup. In my case, as the GPU used is an old one (5 years older than the CPU, huge difference in the tech world), it makes sense to have a CPU that can compete against a GPU. The ![Quadro 600][Quadro 600] card has only 96 cores, and is definitely not a fast card, see this review: ![Quadro 600 review][Quadro 600 review]
+- CUDA code can be improved using intrinsics
 
 ## Bonus
 I found out the ![xkcd][xkcd] style while playing with Matplotlib ... I could not help myself to use it. Don't forget to checkout [Benchmark.py] to see how it works.
