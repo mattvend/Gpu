@@ -40,4 +40,6 @@ Once test application is built, simply execute the python script with the follow
 
 
 # Conclusion
-[[https://github.com/mattvend/Gpu/blob/master/Release/Lena.tiff|alt=octocat]]
+You can see the result with [lena]
+
+![Lena](https://github.com/mattvend/Gpu/blob/master/Release/Lena.tiff)
