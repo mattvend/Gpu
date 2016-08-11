@@ -68,22 +68,25 @@ def convert_to_jpg(raw_file):
     img.save(filename + ".jpg")
 
 
-def run_command(command):
-    return str(subprocess.check_output(command, stderr=subprocess.STDOUT),'utf-8')
+def interpolate(file_in, file_out, device, iterations, interpolation_type):
 
+    command_string = 'ImageInterpolation.exe ' + device + ' ' + str(iterations) + ' ' +  interpolation_type + ' ' + file_in + ' ' + file_out 
 
-def get_running_time(command):
-    program_out = str(subprocess.check_output(command.split(), stderr=subprocess.STDOUT),'utf-8')
+    program_out = str(subprocess.check_output(command_string.split(), stderr=subprocess.STDOUT),'utf-8')
+    print(program_out)
     program_out = program_out.splitlines()
-    seconds = float(program_out[6])
-    return seconds
+    seconds  = float(program_out[6])
+    out_file = program_out[7]
 
-def benchmark_cpu_vs_gpu():
+    return (seconds, out_file)
 
-    cpu1 = get_running_time('ImageInterpolation.exe cpu 20 nn 512x512x8x1_lena.dat cpu_nn_lena.dat')
-    gpu1 = get_running_time('ImageInterpolation.exe gpu 20 nn 512x512x8x1_lena.dat gpu_nn_lena.dat')
-    cpu2 = get_running_time('ImageInterpolation.exe cpu 20 bl 512x512x8x1_lena.dat cpu_bl_lena.dat')
-    gpu2 = get_running_time('ImageInterpolation.exe gpu 20 bl 512x512x8x1_lena.dat gpu_bl_lena.dat')
+
+def benchmark_cpu_vs_gpu(input_raw_file):
+
+    (cpu1, f1) = interpolate(input_raw_file, 'cpu_nn_lena.dat', 'cpu', 20, 'nn')
+    (gpu1, f2) = interpolate(input_raw_file, 'gpu_nn_lena.dat', 'gpu', 20, 'nn')
+    (cpu2, f3) = interpolate(input_raw_file, 'cpu_bl_lena.dat', 'cpu', 20, 'bl')
+    (gpu2, f4) = interpolate(input_raw_file, 'gpu_bl_lena.dat', 'gpu', 20, 'bl')
 
     return ((cpu1,cpu2),(gpu1,gpu2))
 
@@ -127,37 +130,34 @@ def plot_graph(durations):
         autolabel(rects1)
         autolabel(rects2)
 
-        plt.show()
+        # plt.show()
+        plt.savefig('CpuVsGpu.png')
 
+def check_bit_exactness(input_raw_file):
 
+    (t1, f1) = interpolate(input_raw_file, 'cpu_nn_lena.dat', 'cpu', 1, 'nn')
+    (t2, f2) = interpolate(input_raw_file, 'gpu_nn_lena.dat', 'gpu', 1, 'nn')
+    (t3, f3) = interpolate(input_raw_file, 'cpu_bl_lena.dat', 'cpu', 1, 'bl')
+    (t4, f4) = interpolate(input_raw_file, 'gpu_bl_lena.dat', 'gpu', 1, 'bl')
 
-
-def check_bit_exactness():
-
-    print("Checking bit-exactness between GPU processing and CPU processing")
-
-    subprocess.call("ImageInterpolation.exe cpu 1 nn 512x512x8x1_lena.dat cpu_nn_lena.dat", shell=True)
-    subprocess.call("ImageInterpolation.exe gpu 1 nn 512x512x8x1_lena.dat gpu_nn_lena.dat", shell=True)
-
-    subprocess.call("ImageInterpolation.exe cpu 1 bl 512x512x8x1_lena.dat cpu_bl_lena.dat", shell=True)
-    subprocess.call("ImageInterpolation.exe gpu 1 bl 512x512x8x1_lena.dat gpu_bl_lena.dat", shell=True)
-    
-
-    if filecmp.cmp('8000x4000x8x1_cpu_nn_lena.dat', '8000x4000x8x1_cpu_nn_lena.dat', shallow=True):
+    if filecmp.cmp(f1, f2, shallow=True):
         print("NN interpolation on GPU is bit exact with CPU")
     
-    if filecmp.cmp('8000x4000x8x1_gpu_bl_lena.dat', '8000x4000x8x1_gpu_bl_lena.dat', shallow=True):
+    if filecmp.cmp(f3, f4, shallow=True):
         print("Bilinear interpolation on GPU is bit exact with CPU")        
 
 
 if __name__ == '__main__':
+   
+    raw_file = convert_to_raw('Lena.tiff')
 
-    import sys
-
-    print('Number of arguments:', len(sys.argv), 'arguments.')
-    print('Argument List:', str(sys.argv))
+    print("Checking bit-exactness between GPU processing and CPU processing")   
+    check_bit_exactness(raw_file)
     
-    # check_bit_exactness()
-    durations = benchmark_cpu_vs_gpu()
+    print("Benchmarking execution time Cpu vs Gpu")    
+    durations = benchmark_cpu_vs_gpu(raw_file)
+    
+
     plot_graph(durations)
+    
     quit()
