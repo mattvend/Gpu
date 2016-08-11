@@ -26,6 +26,7 @@ def convert_to_raw(file):
 
     return file_name
 
+
 def loop_over_binary_file(file):
 
     with open(file, "rb") as imageFile:
@@ -36,9 +37,7 @@ def loop_over_binary_file(file):
         print(p)
 
 
-
 def convert_to_jpg(raw_file):
-
 
     match = re.match('(\d+)x(\d+)x(\d+)x(\d+)_(\w+)', raw_file)
 
@@ -50,18 +49,16 @@ def convert_to_jpg(raw_file):
         print(match.group(5))
         x = int(match.group(1))
         y = int(match.group(2))
-        bpp = int(match.group(3))
-        dimension = int(match.group(4))
+        # bpp = int(match.group(3))
+        # dimension = int(match.group(4))
         filename = match.group(5)
 
     rawData = open(raw_file, 'rb').read()
     imgSize = (x, y)
+
     # Use the PIL raw decoder to read the data.
     # the 'F;16' informs the raw decoder that we are reading
     # a little endian, unsigned integer 16 bit data.
-    #img = Image.fromstring('L', imgSize, rawData, 'raw', 'F;32')
-
-
     img = Image.frombuffer('L', imgSize, rawData, 'raw')
     img = img.rotate(180)
     img = img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -70,12 +67,12 @@ def convert_to_jpg(raw_file):
 
 def interpolate(file_in, file_out, device, iterations, interpolation_type):
 
-    command_string = 'ImageInterpolation.exe ' + device + ' ' + str(iterations) + ' ' +  interpolation_type + ' ' + file_in + ' ' + file_out 
+    command_string = 'ImageInterpolation.exe ' + device + ' ' + str(iterations) + ' ' +  interpolation_type + ' ' + file_in + ' ' + file_out
 
-    program_out = str(subprocess.check_output(command_string.split(), stderr=subprocess.STDOUT),'utf-8')
+    program_out = str(subprocess.check_output(command_string.split(), stderr=subprocess.STDOUT), 'utf-8')
     print(program_out)
     program_out = program_out.splitlines()
-    seconds  = float(program_out[6])
+    seconds = float(program_out[6])
     out_file = program_out[7]
 
     return (seconds, out_file)
@@ -88,11 +85,11 @@ def benchmark_cpu_vs_gpu(input_raw_file):
     (cpu2, f3) = interpolate(input_raw_file, 'cpu_bl_lena.dat', 'cpu', 20, 'bl')
     (gpu2, f4) = interpolate(input_raw_file, 'gpu_bl_lena.dat', 'gpu', 20, 'bl')
 
-    return ((cpu1,cpu2),(gpu1,gpu2))
+    return ((cpu1, cpu2), (gpu1, gpu2))
 
 
 def plot_graph(durations):
-    
+
     with plt.xkcd():
 
         N = 2
@@ -107,7 +104,7 @@ def plot_graph(durations):
 
         # gpuMeans = (0.669, 3.46)
         gpuMeans = durations[1]
-        
+
         rects2 = ax.bar(ind + width, gpuMeans, width, color='y')
 
         # add some text for labels, title and axes ticks
@@ -118,12 +115,11 @@ def plot_graph(durations):
 
         ax.legend((rects1[0], rects2[0]), ('Cpu', 'Gpu'))
 
-
         def autolabel(rects):
             # attach some text labels
             for rect in rects:
                 height = rect.get_height()
-                ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                ax.text(rect.get_x() + rect.get_width()/ 2., 1.05* height,
                         '%.2f' % height,
                         ha='center', va='bottom')
 
@@ -132,6 +128,7 @@ def plot_graph(durations):
 
         # plt.show()
         plt.savefig('CpuVsGpu.png')
+
 
 def check_bit_exactness(input_raw_file):
 
@@ -142,22 +139,21 @@ def check_bit_exactness(input_raw_file):
 
     if filecmp.cmp(f1, f2, shallow=True):
         print("NN interpolation on GPU is bit exact with CPU")
-    
+
     if filecmp.cmp(f3, f4, shallow=True):
-        print("Bilinear interpolation on GPU is bit exact with CPU")        
+        print("Bilinear interpolation on GPU is bit exact with CPU")
 
 
 if __name__ == '__main__':
-   
+
     raw_file = convert_to_raw('Lena.tiff')
 
-    print("Checking bit-exactness between GPU processing and CPU processing")   
+    print("Checking bit-exactness between GPU processing and CPU processing")
     check_bit_exactness(raw_file)
-    
-    print("Benchmarking execution time Cpu vs Gpu")    
+
+    print("Benchmarking execution time Cpu vs Gpu")
     durations = benchmark_cpu_vs_gpu(raw_file)
-    
 
     plot_graph(durations)
-    
+
     quit()
