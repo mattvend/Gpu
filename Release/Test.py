@@ -153,14 +153,14 @@ def exercise(input_raw_file):
     interp = 'bl'
 
     (t1, f1) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 256, 300)
-    # (t2, f2) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 2000, 1000)
-    # (t3, f3) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 1000, 2000)
-    # (t4, f4) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 8000, 4000)
+    (t2, f2) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 2000, 1000)
+    (t3, f3) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 1000, 2000)
+    (t4, f4) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 8000, 4000)
 
     convert_to_jpg(f1)
-    # convert_to_jpg(f2)
-    # convert_to_jpg(f3)
-    # convert_to_jpg(f4)
+    convert_to_jpg(f2)
+    convert_to_jpg(f3)
+    convert_to_jpg(f4)
 
 if __name__ == '__main__':
    

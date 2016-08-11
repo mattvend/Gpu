@@ -45,7 +45,7 @@ __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFa
 
 }
 
-#define ImPxl(IM,X,Y,W)     *((char*)IM + (X) + (Y)*W)
+#define ImPxl(IM,X,Y,W)     *((unsigned char*)IM + (X) + (Y)*W)
 
 __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned short new_width, unsigned short width, unsigned short new_height, unsigned short height, float WidthScaleFactor, float HeightScaleFactor)
 {
