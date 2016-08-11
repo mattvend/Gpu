@@ -52,12 +52,16 @@ int main(int argc, char** argv)
 		interpolation_type = argv[3];
 		in_file  = argv[4];
 		out_file = argv[5];
+		new_width = atoi(argv[6]);
+		new_height = atoi(argv[7]);
 
 		std::cout << "Using device: " << device_type <<'\n';
 		std::cout << "Nb iterations: " << iterations << '\n';
 		std::cout << "Interplation types: " << interpolation_type << '\n';
 		std::cout << "Input file: " << in_file << '\n';
 		std::cout << "Output file: " << out_file << '\n';
+		std::cout << "New width: " << new_width << '\n';
+		std::cout << "New height: " << new_height << '\n';
 	}
 
 	//
@@ -88,11 +92,11 @@ int main(int argc, char** argv)
 		Im2 = Im1->clone();
 		if (strcmp(interpolation_type, "nn") == 0)
 		{
-			Im2->InterpolateNN(8000, 4000);
+			Im2->InterpolateNN(new_width, new_height);
 		}
 		else
 		{
-			Im2->InterpolateBilinear(8000, 4000);
+			Im2->InterpolateBilinear(new_width, new_height);
 		}
 		delete(Im2);
 	}
@@ -105,11 +109,11 @@ int main(int argc, char** argv)
 	//
 	if (strcmp(interpolation_type, "nn") == 0)
 	{
-		Im1->InterpolateNN(8000, 4000);
+		Im1->InterpolateNN(new_width, new_height);
 	}
 	else
 	{
-		Im1->InterpolateBilinear(8000, 4000);
+		Im1->InterpolateBilinear(new_width, new_height);
 	}
 
 	Im1->Save2RawFile(out_file);

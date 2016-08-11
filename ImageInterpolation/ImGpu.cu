@@ -49,8 +49,8 @@ __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFa
 
 __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned short new_width, unsigned short width, unsigned short new_height, unsigned short height, float WidthScaleFactor, float HeightScaleFactor)
 {
-	unsigned short	X = __umul24(blockIdx.x, blockDim.x) + threadIdx.x;
-	unsigned short	Y = __umul24(blockIdx.y, blockDim.y) + threadIdx.y;
+	unsigned short  X = (blockIdx.x * blockDim.x) + threadIdx.x;
+	unsigned short  Y = (blockIdx.y * blockDim.y) + threadIdx.y;
 	unsigned short	Xp1, Xp2, Xp3, Xp4;
 	unsigned short	Yp1, Yp2, Yp3, Yp4;
 	unsigned short	Integer;
@@ -69,11 +69,6 @@ __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned sho
 	*/
 	xdest = (float)(X + .5)*WidthScaleFactor;
 	ydest = (float)(Y + .5)*HeightScaleFactor;
-
-//	xdest = __fmul_rd((float)(X + .5), WidthScaleFactor);
-//	ydest = __fmul_rd((float)(Y + .5), HeightScaleFactor);
-
-	//  printf("Xdest=%f Ydest=%f ",xdest,ydest);
 
 	/* Processing pixels in the top left corner */
 	if ((xdest < 0.5) && (ydest < 0.5))
@@ -259,7 +254,7 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		float HeightScaleFactor = ((float)height / (float)new_height);
 		float WidthScaleFactor = ((float)width / (float)new_width);
 
-		dim3 threadsPerBlock(8, 8);  // 64 threads
+		dim3 threadsPerBlock(16, 16);  // 64 threads
 		dim3 numBlocks((new_width + threadsPerBlock.x - 1) / threadsPerBlock.x, (new_height + threadsPerBlock.y - 1) / threadsPerBlock.y);
 		KernelInterpolateBilinear << < numBlocks, threadsPerBlock >> > (dev_pxl, dev_new_pxl, new_width, width, new_height, height, WidthScaleFactor, HeightScaleFactor);
 	}
