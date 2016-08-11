@@ -29,11 +29,11 @@
 __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFactor, float HeightScaleFactor, unsigned short new_width, unsigned short width)
 {
 	unsigned short  XRounded, YRounded;
-	
+
 	// X and Y are pixels coordinates in destination image
 	unsigned short X = (blockIdx.x * blockDim.x) + threadIdx.x;
 	unsigned short Y = (blockIdx.y * blockDim.y) + threadIdx.y;
-	
+
 	// XRounded and YRounded are coordinates of the nearest neighbor in the original image */
 //	XRounded = (unsigned short)floor((float)X*WidthScaleFactor);
 //	YRounded = (unsigned short)floor((float)Y*HeightScaleFactor);
@@ -45,7 +45,7 @@ __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFa
 
 }
 
-#define ImPxl(IM,X,Y,W)     *((unsigned char*)IM + (X) + (Y)*W)
+#define ImPxl(IM,X,Y,W)     *((char*)IM + (X) + (Y)*W)
 
 __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned short new_width, unsigned short width, unsigned short new_height, unsigned short height, float WidthScaleFactor, float HeightScaleFactor)
 {
@@ -87,7 +87,7 @@ __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned sho
 		Xp2 = Xp1 + 1;
 
 		// (1 - t)*v0 + t*v1; // fma(t, v1, fma(-t, v0, v0))
-		
+
 		/* Perform bilinear interpolation */
 		ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphax)*ImPxl(pxl, Xp1, 0, width) + alphax*ImPxl(pxl, Xp2, 0, width));
 		// ImPxl(new_pxl, X, Y, new_width) = (unsigned char)fma(alphax, ImPxl(pxl, Xp2, 0, width), fma(-alphax, ImPxl(pxl, Xp1, 0, width), ImPxl(pxl, Xp1, 0, width)));
@@ -207,7 +207,7 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		dim3 numBlocks((new_width + threadsPerBlock.x - 1) / threadsPerBlock.x, (new_height + threadsPerBlock.y - 1) / threadsPerBlock.y);
 		KernelInterpolateNN <<< numBlocks, threadsPerBlock >>> (dev_pxl, dev_new_pxl, WidthScaleFactor, HeightScaleFactor, new_width, width);
 	}
-	
+
 	// Check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
@@ -223,7 +223,7 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		goto Error;
 	}
 
-	// Free all resources 
+	// Free all resources
 	cudaFree(dev_pxl);
 	dev_pxl = dev_new_pxl;
 
@@ -274,7 +274,7 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		goto Error;
 	}
 
-	// Free all resources 
+	// Free all resources
 	cudaFree(dev_pxl);
 	dev_pxl = dev_new_pxl;
 
