@@ -1,7 +1,7 @@
 # Gpu
 
 ## Goal of this project
-Benchmark interpolation algorithms running on GPU againt their CPU version. Of course, I had to use Lena for this.  
+Benchmark interpolation algorithms running on GPU againt their CPU version. I used Lena as an input image.
   
 ![Lena][Lena]
 
@@ -56,10 +56,12 @@ Here are the results, produced by Benchmark.py
 - Both interpolation algorithms are done in a naive way
 - For some parameters, there are still issues with GPU interpolation
 - Cpu vs Gpu benchamrking seems to be tricky as the figures obtained depends obviously on the setup. In my case, as the GPU used is an old one (5 years older than the CPU, huge difference in the tech world), it makes sense to have a CPU that can compete against a GPU. The ![Quadro 600][Quadro 600] card has only 96 cores, and is definitely not a fast card, see this review: ![Quadro 600 review][Quadro 600 review]
-- CUDA code can be improved using intrinsics
+- CUDA code can be improved using intrinsics  
 
+<!---
 ## Bonus
 I found out the ![xkcd][xkcd] style while playing with ![Matplotlib][Matplotlib] ... I could not help myself to use it. Don't forget to checkout [Benchmark.py] to see how it works.
+-->
 
 [Lena]: http://www.cosy.sbg.ac.at/~pmeerw/Watermarking/lena_color.gif "Lena"
 [Results]: /Release/CpuVsGpu.png
