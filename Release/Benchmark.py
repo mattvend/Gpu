@@ -26,19 +26,8 @@ def convert_to_raw(file):
 
     return file_name
 
-def loop_over_binary_file(file):
-
-    with open(file, "rb") as imageFile:
-        f = imageFile.read()
-        pixels = bytearray(f)
-
-    for p in pixels:
-        print(p)
-
-
 
 def convert_to_jpg(raw_file):
-
 
     match = re.match('(\d+)x(\d+)x(\d+)x(\d+)_(\w+)', raw_file)
 
@@ -93,7 +82,7 @@ def benchmark_cpu_vs_gpu(input_raw_file):
 
 def plot_graph(durations):
     
-    with plt.xkcd():
+    # with plt.xkcd():
 
         N = 2
         # cpuMeans = (1.218, 10.303)
