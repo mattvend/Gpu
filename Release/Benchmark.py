@@ -8,6 +8,14 @@ import matplotlib.pyplot as plt
 
 
 def convert_to_raw(file):
+    """ Convert file to raw file.
+
+        Args:
+            file: file to convert.
+
+        Returns:
+            name of the raw file on filesystem
+        """
 
     img = Image.open(file)
     img = img.convert('L')  # convert to 8 bits per pixels
@@ -28,7 +36,14 @@ def convert_to_raw(file):
 
 
 def convert_to_jpg(raw_file):
+    """ Convert a raw file to jpg file.
 
+        Args:
+            raw_file: file to convert.
+
+        Returns: null
+
+        """
     match = re.match('(\d+)x(\d+)x(\d+)x(\d+)_(\w+)', raw_file)
 
     if match:
@@ -48,8 +63,7 @@ def convert_to_jpg(raw_file):
     # Use the PIL raw decoder to read the data.
     # the 'F;16' informs the raw decoder that we are reading
     # a little endian, unsigned integer 16 bit data.
-    #img = Image.fromstring('L', imgSize, rawData, 'raw', 'F;32')
-
+    # img = Image.fromstring('L', imgSize, rawData, 'raw', 'F;32')
 
     img = Image.frombuffer('L', imgSize, rawData, 'raw')
     img = img.rotate(180)
@@ -58,32 +72,67 @@ def convert_to_jpg(raw_file):
 
 
 def interpolate(file_in, file_out, device, iterations, interpolation_type, new_width, new_height):
+    """ Wrapper function on top of the interpolation executable.
+        It is also a benchmarking function, it returns the name of the output
+        image and the time needed to do all the iterations
 
-    command_string = 'ImageInterpolation.exe ' + device + ' ' + str(iterations) + ' ' +  interpolation_type + ' ' + file_in + ' ' + file_out + ' ' + str(new_width) + ' ' + str(new_height) 
+        Args:
+            file_in: input raw image used for the tests.
+            file_out: output raw image
+            device: 'cpu' or 'gpu'
+            iterations: number of times we do the processing
+                (we can do it iterations times, but only return 1 output image)
+            interpolation_type: 'nn' or 'bl'
+            new_width: output image width
+            new_height: output image height
 
-    program_out = str(subprocess.check_output(command_string.split(), stderr=subprocess.STDOUT),'utf-8')
-    print(program_out)
+        Returns:
+            a tuple containing the output image name and the time in sec needed
+            to do the processing iterations times
+
+        """
+
+    command_string = 'ImageInterpolation.exe ' + device + ' ' + str(iterations) + ' ' + interpolation_type + ' ' + file_in + ' ' + file_out + ' ' + str(new_width) + ' ' + str(new_height)
+
+    program_out = str(subprocess.check_output(command_string.split(), stderr=subprocess.STDOUT), 'utf-8')
+    print(program_out)  # can be commented, avoid output polution
     program_out = program_out.splitlines()
-    seconds  = float(program_out[8])
+    # Attention, time and file name respectively at lines 8 and 9 of the output
+    seconds = float(program_out[8])
     out_file = program_out[9]
 
     return (seconds, out_file)
 
 
 def benchmark_cpu_vs_gpu(input_raw_file):
+    """ Benchmark cpu vs gpu time wise.
+
+        Args:
+            input_raw_file: input raw image used for the tests.
+
+        Returns:
+            2 tuples containing times needed to do processing on gpu and cpu
+        """
 
     (cpu1, f1) = interpolate(input_raw_file, 'cpu_nn_lena.dat', 'cpu', 20, 'nn', 8000, 4000)
     (gpu1, f2) = interpolate(input_raw_file, 'gpu_nn_lena.dat', 'gpu', 20, 'nn', 8000, 4000)
     (cpu2, f3) = interpolate(input_raw_file, 'cpu_bl_lena.dat', 'cpu', 20, 'bl', 8000, 4000)
     (gpu2, f4) = interpolate(input_raw_file, 'gpu_bl_lena.dat', 'gpu', 20, 'bl', 8000, 4000)
 
-    return ((cpu1,cpu2),(gpu1,gpu2))
+    return ((cpu1, cpu2), (gpu1, gpu2))
 
 
 def plot_graph(durations):
-    
-    # with plt.xkcd():
+    """ Plot durations in a graph
 
+        Args:
+            durations: processing durations.
+
+        Returns:
+            a file on file system
+        """
+
+    # with plt.xkcd():
         N = 2
         # cpuMeans = (1.218, 10.303)
         cpuMeans = durations[0]
@@ -96,7 +145,7 @@ def plot_graph(durations):
 
         # gpuMeans = (0.669, 3.46)
         gpuMeans = durations[1]
-        
+
         rects2 = ax.bar(ind + width, gpuMeans, width, color='y')
 
         # add some text for labels, title and axes ticks
@@ -107,12 +156,11 @@ def plot_graph(durations):
 
         ax.legend((rects1[0], rects2[0]), ('Cpu', 'Gpu'))
 
-
         def autolabel(rects):
             # attach some text labels
             for rect in rects:
                 height = rect.get_height()
-                ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
+                ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
                         '%.2f' % height,
                         ha='center', va='bottom')
 
@@ -122,8 +170,17 @@ def plot_graph(durations):
         # plt.show()
         plt.savefig('CpuVsGpu.png')
 
-def check_bit_exactness(input_raw_file):
 
+def check_bit_exactness(input_raw_file):
+    """ Check bit exactness on interpolation executable between Gpu vs Cpu with various parameters.
+
+        Args:
+            param1: input raw image used for the tests.
+
+        Returns:
+            Prints to the output if results are bit exact
+
+        """
     (t1, f1) = interpolate(input_raw_file, 'cpu_nn_lena.dat', 'cpu', 1, 'nn', 8000, 4000)
     (t2, f2) = interpolate(input_raw_file, 'gpu_nn_lena.dat', 'gpu', 1, 'nn', 8000, 4000)
     (t3, f3) = interpolate(input_raw_file, 'cpu_bl_lena.dat', 'cpu', 1, 'bl', 8000, 4000)
@@ -131,12 +188,17 @@ def check_bit_exactness(input_raw_file):
 
     if filecmp.cmp(f1, f2, shallow=True):
         print("NN interpolation on GPU is bit exact with CPU")
-    
     if filecmp.cmp(f3, f4, shallow=True):
-        print("Bilinear interpolation on GPU is bit exact with CPU")        
+        print("Bilinear interpolation on GPU is bit exact with CPU")
 
 
 def exercise(input_raw_file):
+    """ Exercise interpolation executable with various parameters.
+
+        No Args:
+
+        Returns: null
+    """
 
     device = 'gpu'
     interp = 'bl'
@@ -152,18 +214,26 @@ def exercise(input_raw_file):
     convert_to_jpg(f4)
 
 if __name__ == '__main__':
-   
+
+    #
+    # Convert Lena Tiff image to raw format
+    #
     raw_file = convert_to_raw('Lena.tiff')
     # exercise(raw_file)
     # quit()
 
-    print("Checking bit-exactness between GPU processing and CPU processing")   
+    #
+    # Check bit eaxctness between Cpu and Gpu processing
+    #
+    print("Checking bit-exactness between GPU processing and CPU processing")
     check_bit_exactness(raw_file)
-    
-    print("Benchmarking execution time Cpu vs Gpu")    
-    durations = benchmark_cpu_vs_gpu(raw_file)
-    
 
+    #
+    # Perform benchmark between Cpu and Gpu processing
+    # plot results in a file
+    #
+    print("Benchmarking execution time Cpu vs Gpu")
+    durations = benchmark_cpu_vs_gpu(raw_file)
     plot_graph(durations)
-    
+
     quit()
