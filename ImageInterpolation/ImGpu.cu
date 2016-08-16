@@ -26,7 +26,19 @@
 #include <stdio.h>
 #include <iostream>
 
-__global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFactor, float HeightScaleFactor, unsigned short new_width, unsigned short width)
+__global__ void ComputeXDest(float *xdest, float WidthScaleFactor)
+{
+	unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	xdest[idx] = (float)(idx + .5)*WidthScaleFactor;
+}
+
+__global__ void ComputeYDest(float *ydest, float HeightScaleFactor)
+{
+	unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	ydest[idx] = (float)(idx + .5)*HeightScaleFactor;
+}
+
+__global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float *xdest, float *ydest, unsigned short new_width, unsigned short width)
 {
 	unsigned short  XRounded, YRounded;
 
@@ -35,14 +47,10 @@ __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float WidthScaleFa
 	unsigned short Y = (blockIdx.y * blockDim.y) + threadIdx.y;
 
 	// XRounded and YRounded are coordinates of the nearest neighbor in the original image */
-//	XRounded = (unsigned short)floor((float)X*WidthScaleFactor);
-//	YRounded = (unsigned short)floor((float)Y*HeightScaleFactor);
-
-	XRounded = (unsigned short)__fmul_rd((float)(X+0.5), WidthScaleFactor);
-	YRounded = (unsigned short)__fmul_rd((float)(Y+0.5), HeightScaleFactor);
+	XRounded = (unsigned short)xdest[X];
+	YRounded = (unsigned short)ydest[Y];
 
 	*((char*)new_pxl + X + Y*new_width) = *((char*)pxl + XRounded + YRounded*width);
-
 }
 
 #define ImPxl(IM,X,Y,W)     *((unsigned char*)IM + (X) + (Y)*W)
@@ -189,6 +197,7 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 {
 	void *dev_new_pxl;
 	cudaError_t cudaStatus;
+	float *xdest, *ydest;
 
 	/* Compute scaling factor for each dimension */
 	float HeightScaleFactor = ((float)height / (float)new_height);
@@ -200,12 +209,44 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		fprintf(stderr, "cudaMalloc failed!");
 		goto Error;
 	}
+	cudaStatus = cudaMalloc((void**)&xdest, new_width * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed!");
+		goto Error;
+	}
+
+	cudaStatus = cudaMalloc((void**)&ydest, new_height * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed!");
+		goto Error;
+	}
 
 	// Launch a kernel on the GPU with one thread for each element.
+	// Using Streams and events API to synchronize kernel calls
 	{
 		dim3 threadsPerBlock(16, 16);  // 64 threads
 		dim3 numBlocks((new_width + threadsPerBlock.x - 1) / threadsPerBlock.x, (new_height + threadsPerBlock.y - 1) / threadsPerBlock.y);
-		KernelInterpolateNN <<< numBlocks, threadsPerBlock >>> (dev_pxl, dev_new_pxl, WidthScaleFactor, HeightScaleFactor, new_width, width);
+		cudaStream_t streamA, streamB, streamC;;
+		cudaEvent_t event, event2;
+
+		cudaStreamCreate(&streamA);
+		cudaStreamCreate(&streamB);
+		cudaStreamCreate(&streamC);
+
+		cudaEventCreate(&event);
+		cudaEventCreate(&event2);
+
+		ComputeXDest << < (new_width + 96 - 1) / 96, 96,0, streamA >> > (xdest, WidthScaleFactor);
+		cudaEventRecord(event, streamA);
+
+		ComputeYDest << < (new_height + 96 - 1) / 96, 96,0, streamB >> > (ydest, HeightScaleFactor);
+		cudaEventRecord(event2, streamB);
+
+		// Do not call KernelInterpolateNN until computation needed has been done in ComputeXDest and ComputeYDest
+		// Ensuring correct stream synchro with cudaStreamWaitEvent
+		cudaStreamWaitEvent(streamC, event, 0);
+		cudaStreamWaitEvent(streamC, event2, 0);
+		KernelInterpolateNN << < numBlocks, threadsPerBlock,0, streamC >> > (dev_pxl, dev_new_pxl, xdest, ydest, new_width, width);
 	}
 
 	// Check for any errors launching the kernel
@@ -225,6 +266,9 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 
 	// Free all resources
 	cudaFree(dev_pxl);
+	cudaFree(xdest);
+	cudaFree(ydest);
+
 	dev_pxl = dev_new_pxl;
 
 	width = new_width;

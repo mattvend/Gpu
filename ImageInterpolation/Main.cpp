@@ -78,8 +78,7 @@ int main(int argc, char** argv)
 	if (strcmp(device_type, "cpu") == 0){
 		Im1 = new ImCpu(in_file);
 		std::cout << "Creating Imcpu instance" << '\n';
-	}
-	else{
+	}else{
 		Im1 = new ImGpu(in_file);
 		std::cout << "Creating Imgpu instance" << '\n';
 	}
@@ -87,20 +86,24 @@ int main(int argc, char** argv)
 	//
 	// Perform and profile interpolation x times 
 	//
-	begin_time = clock();
+
 	for (i = 0; i < iterations; i++){
 		Im2 = Im1->clone();
 		if (strcmp(interpolation_type, "nn") == 0)
 		{
+			begin_time = clock();
 			Im2->InterpolateNN(new_width, new_height);
+			end_time += clock() - begin_time;
 		}
 		else
 		{
+			begin_time = clock();
 			Im2->InterpolateBilinear(new_width, new_height);
+			end_time += clock() - begin_time;
 		}
 		delete(Im2);
 	}
-	end_time = clock() - begin_time;
+
 
 	std::cout << float(end_time) / CLOCKS_PER_SEC << '\n';
 

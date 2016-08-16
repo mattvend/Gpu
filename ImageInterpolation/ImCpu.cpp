@@ -148,18 +148,31 @@ void ImCpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 	/* Compute scaling factor for each dimension */
 	float HeightScaleFactor = ((float)height / (float)new_height);
 	float WidthScaleFactor = ((float)width / (float)new_width);
-
-	float xdest, ydest;
+	float *xdest, *ydest;
 
 	/* Allocate memory for the pixels */
 	if (8 == bpp)
 	{
 		new_pxl = new char[sizeof(char) * new_width *new_height *dimension];
+		xdest = new float[new_width];
+		ydest = new float[new_height];
 	}
 	else if (16 == bpp)
 	{
 		new_pxl = new unsigned short[sizeof(unsigned short) * new_width *new_height *dimension];
 	}
+
+	for (Y = 0; Y < new_height; Y++)
+	{
+		ydest[Y] = (float)(Y + .5)*HeightScaleFactor;
+	}
+	
+	for (X = 0; X < new_width; X++)
+	{
+		xdest[X] = (float)(X + .5)*WidthScaleFactor;
+	}
+
+
 
 	/* Compute pixel intensity in destination image */
 	for (Y = 0; Y < new_height; Y++)
@@ -167,11 +180,8 @@ void ImCpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		for (X = 0; X < new_width; X++)
 		{
 			/* xdest and ydest are coordinates of destination pixel in the original image */
-			xdest = (float)(X + .5)*WidthScaleFactor;
-			ydest = (float)(Y + .5)*HeightScaleFactor;
-
-			XRounded = (unsigned short)xdest;
-			YRounded = (unsigned short)ydest;
+			XRounded = (unsigned short)xdest[X];
+			YRounded = (unsigned short)ydest[Y];
 
 			*((char*)new_pxl + X + Y*new_width) = *((char*)pxl + XRounded + YRounded*width);
 		}

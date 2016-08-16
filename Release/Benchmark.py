@@ -133,42 +133,42 @@ def plot_graph(durations):
         """
 
     # with plt.xkcd():
-        N = 2
-        # cpuMeans = (1.218, 10.303)
-        cpuMeans = durations[0]
+    N = 2
+    # cpuMeans = (1.218, 10.303)
+    cpuMeans = durations[0]
 
-        ind = np.arange(N)  # the x locations for the groups
-        width = 0.35       # the width of the bars
+    ind = np.arange(N)  # the x locations for the groups
+    width = 0.35       # the width of the bars
 
-        fig, ax = plt.subplots()
-        rects1 = ax.bar(ind, cpuMeans, width, color='r')
+    fig, ax = plt.subplots()
+    rects1 = ax.bar(ind, cpuMeans, width, color='r')
 
-        # gpuMeans = (0.669, 3.46)
-        gpuMeans = durations[1]
+    # gpuMeans = (0.669, 3.46)
+    gpuMeans = durations[1]
 
-        rects2 = ax.bar(ind + width, gpuMeans, width, color='y')
+    rects2 = ax.bar(ind + width, gpuMeans, width, color='y')
 
-        # add some text for labels, title and axes ticks
-        ax.set_ylabel('Time in sec')
-        ax.set_title('Duration by interpolation type and device type')
-        ax.set_xticks(ind + width)
-        ax.set_xticklabels(('Nearest Neighbor', 'Bilinear'))
+    # add some text for labels, title and axes ticks
+    ax.set_ylabel('Time in sec')
+    ax.set_title('Duration by interpolation type and device type')
+    ax.set_xticks(ind + width)
+    ax.set_xticklabels(('Nearest Neighbor', 'Bilinear'))
 
-        ax.legend((rects1[0], rects2[0]), ('Cpu', 'Gpu'))
+    ax.legend((rects1[0], rects2[0]), ('Cpu', 'Gpu'))
 
-        def autolabel(rects):
-            # attach some text labels
-            for rect in rects:
-                height = rect.get_height()
-                ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                        '%.2f' % height,
-                        ha='center', va='bottom')
+    def autolabel(rects):
+        # attach some text labels
+        for rect in rects:
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
+                    '%.2f' % height,
+                    ha='center', va='bottom')
 
-        autolabel(rects1)
-        autolabel(rects2)
+    autolabel(rects1)
+    autolabel(rects2)
 
-        # plt.show()
-        plt.savefig('CpuVsGpu.png')
+    # plt.show()
+    plt.savefig('CpuVsGpu.png')
 
 
 def check_bit_exactness(input_raw_file):
@@ -201,7 +201,7 @@ def exercise(input_raw_file):
     """
 
     device = 'gpu'
-    interp = 'bl'
+    interp = 'nn'
 
     (t1, f1) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 256, 300)
     (t2, f2) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 2000, 1000)
