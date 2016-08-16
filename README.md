@@ -35,6 +35,8 @@ A simple Python script exercise the test app and hence can benchamrk one solutio
 The Im abstract class represents our image class with two interpolation methods: NN and bilinear  
 ImCpu and ImGpu implement the interface, with code running respectively on the CPU and on the GPU
 
+Note that the classes only works for 8 bpp 1 channel images, ie grey images
+
 The test application uses ImCpu or ImGpu depending on the received arguments. All remaining code stays the same as both classes implement the same abstract interface
 
 ### Timing
@@ -57,6 +59,9 @@ Here are the results, produced by Benchmark.py
 - For some parameters, there are still issues with GPU interpolation
 - Cpu vs Gpu benchamrking seems to be tricky as the figures obtained depends obviously on the setup. In my case, as the GPU used is an old one (5 years older than the CPU, huge difference in the tech world), it makes sense to have a CPU that can compete against a GPU. The ![Quadro 600][Quadro 600] card has only 96 cores, and is definitely not a fast card, see this review: ![Quadro 600 review][Quadro 600 review]
 - CUDA code can be improved using intrinsics  
+   
+# Edit 16/8
+Reworte the NN algo using CUDA Streams and events and got a nice improvement. Now NN interpolation on Gpu performs 3 times faster than its Cpu conterpart. Note that all the synchro mechanism could have been done in another way by using the __syncthreads() method and some shared memory between threads.
 
 <!---
 ## Bonus
