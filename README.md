@@ -61,7 +61,7 @@ Here are the results, produced by Benchmark.py
 - CUDA code can be improved using intrinsics  
    
 # Edit 16/8
-Reworte the NN algo using CUDA Streams and events and got a nice improvement. Now NN interpolation on Gpu performs 3 times faster than its Cpu conterpart. Note that all the synchro mechanism could have been done in another way by using the __syncthreads() method and some shared memory between threads.
+Rewrote the NN algo using CUDA Streams and events and got a nice improvement. Now NN interpolation on Gpu performs 3 times faster than its Cpu conterpart. Note that all the synchro mechanism could have been done in another way by using the __syncthreads() method and some shared memory between threads.
 
 <!---
 ## Bonus
