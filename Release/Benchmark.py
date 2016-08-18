@@ -114,15 +114,17 @@ def benchmark_cpu_vs_gpu(input_raw_file):
             2 tuples containing times needed to do processing on gpu and cpu
         """
 
-    (cpu1, f1) = interpolate(input_raw_file, 'cpu_nn_lena.dat', 'cpu', 20, 'nn', 8000, 4000)
-    (gpu1, f2) = interpolate(input_raw_file, 'gpu_nn_lena.dat', 'gpu', 20, 'nn', 8000, 4000)
-    (cpu2, f3) = interpolate(input_raw_file, 'cpu_bl_lena.dat', 'cpu', 20, 'bl', 8000, 4000)
-    (gpu2, f4) = interpolate(input_raw_file, 'gpu_bl_lena.dat', 'gpu', 20, 'bl', 8000, 4000)
+    nb_iterations = 20
 
+    (cpu1, f1) = interpolate(input_raw_file, 'cpu_nn_lena.dat', 'cpu', nb_iterations, 'nn', 8000, 4000)
+    (gpu1, f2) = interpolate(input_raw_file, 'gpu_nn_lena.dat', 'gpu', nb_iterations, 'nn', 8000, 4000)
+    (cpu2, f3) = interpolate(input_raw_file, 'cpu_bl_lena.dat', 'cpu', nb_iterations, 'bl', 8000, 4000)
+    (gpu2, f4) = interpolate(input_raw_file, 'gpu_bl_lena.dat', 'gpu', nb_iterations, 'bl', 8000, 4000)
+
+    # return ((cpu1/nb_iterations, cpu2/nb_iterations), (gpu1/nb_iterations, gpu2/nb_iterations))
     return ((cpu1, cpu2), (gpu1, gpu2))
 
-
-def plot_graph(durations):
+def plot_graph(durations, figure_name):
     """ Plot durations in a graph
 
         Args:
@@ -161,14 +163,14 @@ def plot_graph(durations):
         for rect in rects:
             height = rect.get_height()
             ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
-                    '%.2f' % height,
+                    '%.3f' % height,
                     ha='center', va='bottom')
 
     autolabel(rects1)
     autolabel(rects2)
 
     # plt.show()
-    plt.savefig('CpuVsGpu.png')
+    plt.savefig(figure_name)
 
 
 def check_bit_exactness(input_raw_file):
@@ -199,19 +201,12 @@ def exercise(input_raw_file):
 
         Returns: null
     """
-
-    device = 'gpu'
-    interp = 'nn'
-
-    (t1, f1) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 256, 300)
-    (t2, f2) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 2000, 1000)
-    (t3, f3) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 1000, 2000)
-    (t4, f4) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, 8000, 4000)
-
-    convert_to_jpg(f1)
-    convert_to_jpg(f2)
-    convert_to_jpg(f3)
-    convert_to_jpg(f4)
+    for device in ['cpu','gpu']:
+        for interp in ['bl']:
+            for (w,h) in ((256, 300),(2000, 1000),(1000, 2000),(8000, 4000)):
+                (t, f) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, w, h)
+                convert_to_jpg(f)
+ 
 
 if __name__ == '__main__':
 
@@ -234,6 +229,6 @@ if __name__ == '__main__':
     #
     print("Benchmarking execution time Cpu vs Gpu")
     durations = benchmark_cpu_vs_gpu(raw_file)
-    plot_graph(durations)
+    plot_graph(durations,'CpuVsGpu.png')
 
     quit()

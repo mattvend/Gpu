@@ -171,9 +171,7 @@ void ImCpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 	{
 		xdest[X] = (float)(X + .5)*WidthScaleFactor;
 	}
-
-
-
+	
 	/* Compute pixel intensity in destination image */
 	for (Y = 0; Y < new_height; Y++)
 	{
@@ -210,17 +208,30 @@ void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 	float HeightScaleFactor = ((float)height / (float)new_height);
 	float WidthScaleFactor = ((float)width / (float)new_width);
 
-	double xdest, ydest;
+	float xdest, ydest;
 	double alphax, alphay;
+	float *xd, *yd;
 
 	/* Allocate memory for the pixels */
 	if (8 == bpp)
 	{
 		new_pxl = new char[sizeof(char) * new_width *new_height *dimension];
+		xd = new float[new_width];
+		yd = new float[new_height];
 	}
 	else if (16 == bpp)
 	{
 		new_pxl = new unsigned short[sizeof(unsigned short) * new_width *new_height *dimension];
+	}
+
+	for (Y = 0; Y < new_height; Y++)
+	{
+		yd[Y] = (float)(Y + .5)*HeightScaleFactor;
+	}
+
+	for (X = 0; X < new_width; X++)
+	{
+		xd[X] = (float)(X + .5)*WidthScaleFactor;
 	}
 
 	/* Compute pixel intensity in destination image */
@@ -228,14 +239,11 @@ void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 	{
 		for (X = 0; X < new_width; X++)
 		{
-
 			/*
 			* xdest and ydest are coordinates of destination pixel in the original image
 			*/
-			xdest = (float)(X + .5)*WidthScaleFactor;
-			ydest = (float)(Y + .5)*HeightScaleFactor;
-
-			//  printf("Xdest=%f Ydest=%f ",xdest,ydest);
+			xdest = xd[X];
+			ydest = yd[Y];
 
 			/* Processing pixels in the top left corner */
 			if ((xdest < 0.5) && (ydest < 0.5))
@@ -284,7 +292,6 @@ void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 				/*
 				* Compute Alpha x and Alpha y values used to perform interpolation
 				*/
-
 				Integer = (unsigned short)(xdest - 0.5);
 				alphax = (float)((xdest - 0.5) - Integer);
 				Xp1 = Xp3 = Integer;

@@ -55,7 +55,7 @@ __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float *xdest, floa
 
 #define ImPxl(IM,X,Y,W)     *((unsigned char*)IM + (X) + (Y)*W)
 
-__global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned short new_width, unsigned short width, unsigned short new_height, unsigned short height, float WidthScaleFactor, float HeightScaleFactor)
+__global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned short new_width, unsigned short width, unsigned short new_height, unsigned short height, float *xd, float *yd)
 {
 	unsigned short  X = (blockIdx.x * blockDim.x) + threadIdx.x;
 	unsigned short  Y = (blockIdx.y * blockDim.y) + threadIdx.y;
@@ -64,19 +64,14 @@ __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned sho
 	unsigned short	Integer;
 
 	/* Compute scaling factor for each dimension */
-//	float HeightScaleFactor = ((float)height / (float)new_height);
-//	float WidthScaleFactor = ((float)width / (float)new_width);
-
-	double xdest, ydest;
+	float xdest, ydest;
 	double alphax, alphay;
-
-	/* Compute pixel intensity in destination image */
 
 	/*
 	* xdest and ydest are coordinates of destination pixel in the original image
 	*/
-	xdest = (float)(X + .5)*WidthScaleFactor;
-	ydest = (float)(Y + .5)*HeightScaleFactor;
+	xdest = xd[X];
+	ydest = yd[Y];
 
 	/* Processing pixels in the top left corner */
 	if ((xdest < 0.5) && (ydest < 0.5))
@@ -113,7 +108,7 @@ __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned sho
 	if ((xdest < 0.5) && (ydest > 0.5) && (ydest < (height - 1 + 0.5)))
 	{
 		/* Compute Alpha y value used to perform interpolation */
-		Integer = (unsigned short)(ydest - 0.5);
+			Integer = (unsigned short)(ydest - 0.5);
 		alphay = (float)((ydest - 0.5) - Integer);
 
 		Yp1 = Integer;
@@ -129,7 +124,6 @@ __global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned sho
 		/*
 		* Compute Alpha x and Alpha y values used to perform interpolation
 		*/
-
 		Integer = (unsigned short)(xdest - 0.5);
 		alphax = (float)((xdest - 0.5) - Integer);
 		Xp1 = Xp3 = Integer;
@@ -236,11 +230,11 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		cudaEventCreate(&event);
 		cudaEventCreate(&event2);
 
-		ComputeXDest << < (new_width + 96 - 1) / 96, 96,0, streamA >> > (xdest, WidthScaleFactor);
 		cudaEventRecord(event, streamA);
-
-		ComputeYDest << < (new_height + 96 - 1) / 96, 96,0, streamB >> > (ydest, HeightScaleFactor);
 		cudaEventRecord(event2, streamB);
+
+		ComputeXDest << < (new_width + 96 - 1) / 96, 96, 0, streamA >> > (xdest, WidthScaleFactor);
+		ComputeYDest << < (new_height + 96 - 1) / 96, 96,0, streamB >> > (ydest, HeightScaleFactor);
 
 		// Do not call KernelInterpolateNN until computation needed has been done in ComputeXDest and ComputeYDest
 		// Ensuring correct stream synchro with cudaStreamWaitEvent
@@ -277,12 +271,19 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 	return;
 Error:
 	cudaFree(dev_new_pxl);
+	cudaFree(xdest);
+	cudaFree(ydest);
 }
 
 void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_height)
 {
 	void *dev_new_pxl;
 	cudaError_t cudaStatus;
+	float *xdest, *ydest;
+
+	/* Compute scaling factor for each dimension */
+	float HeightScaleFactor = ((float)height / (float)new_height);
+	float WidthScaleFactor = ((float)width / (float)new_width);
 
 	// Allocate GPU buffers for the buffers of pixels on the GPU.
 	cudaStatus = cudaMalloc((void**)&dev_new_pxl, new_width *new_height *dimension * sizeof(char));
@@ -291,16 +292,44 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		goto Error;
 	}
 
+	cudaStatus = cudaMalloc((void**)&xdest, new_width * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed!");
+		goto Error;
+	}
+
+	cudaStatus = cudaMalloc((void**)&ydest, new_height * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed!");
+		goto Error;
+	}
 
 	// Launch a kernel on the GPU with one thread for each element.
 	{
-		/* Compute scaling factor for each dimension */
-		float HeightScaleFactor = ((float)height / (float)new_height);
-		float WidthScaleFactor = ((float)width / (float)new_width);
-
 		dim3 threadsPerBlock(16, 16);  // 64 threads
 		dim3 numBlocks((new_width + threadsPerBlock.x - 1) / threadsPerBlock.x, (new_height + threadsPerBlock.y - 1) / threadsPerBlock.y);
-		KernelInterpolateBilinear << < numBlocks, threadsPerBlock >> > (dev_pxl, dev_new_pxl, new_width, width, new_height, height, WidthScaleFactor, HeightScaleFactor);
+		cudaStream_t streamA, streamB, streamC;;
+		cudaEvent_t event, event2;
+
+		cudaStreamCreate(&streamA);
+		cudaStreamCreate(&streamB);
+		cudaStreamCreate(&streamC);
+
+		cudaEventCreate(&event);
+		cudaEventCreate(&event2);
+
+		ComputeXDest << < (new_width + 96 - 1) / 96, 96, 0, streamA >> > (xdest, WidthScaleFactor);
+		cudaEventRecord(event, streamA);
+
+		ComputeYDest << < (new_height + 96 - 1) / 96, 96, 0, streamB >> > (ydest, HeightScaleFactor);
+		cudaEventRecord(event2, streamB);
+
+		// Do not call KernelInterpolateNN until computation needed has been done in ComputeXDest and ComputeYDest
+		// Ensuring correct stream synchro with cudaStreamWaitEvent
+		cudaStreamWaitEvent(streamC, event, 0);
+		cudaStreamWaitEvent(streamC, event2, 0);
+
+		KernelInterpolateBilinear << < numBlocks, threadsPerBlock, 0, streamC >> > (dev_pxl, dev_new_pxl, new_width, width, new_height, height, xdest, ydest);
 	}
 
 	// Check for any errors launching the kernel
@@ -320,6 +349,9 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 
 	// Free all resources
 	cudaFree(dev_pxl);
+	cudaFree(xdest);
+	cudaFree(ydest);
+
 	dev_pxl = dev_new_pxl;
 
 	width = new_width;
@@ -328,4 +360,6 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 	return;
 Error:
 	cudaFree(dev_new_pxl);
+	cudaFree(xdest);
+	cudaFree(ydest);
 }
