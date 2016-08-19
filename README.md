@@ -64,6 +64,9 @@ Here are the results, produced by Benchmark.py
 #### Edit 16/8
 Rewrote the NN algo using ![CUDA streams][CUDA streams] and ![CUDA events][CUDA events] and got a nice improvement. Now NN interpolation on Gpu performs 3 times faster than its Cpu conterpart. Note that all the synchro mechanism could have been done in another way by using the __syncthreads() method and some shared memory between threads.
 
+#### Edit 19/8
+Rewrote the BL algo with similar optimisations as for the NN interpolation and could divide the running time by 2 on the GPU on top on what has been already achieved. Issues still pending for some interpolations parameters, algo works well for 8000, 4000 use case.
+
 <!---
 ## Bonus
 I found out the ![xkcd][xkcd] style while playing with ![Matplotlib][Matplotlib] ... I could not help myself to use it. Don't forget to checkout [Benchmark.py] to see how it works.
