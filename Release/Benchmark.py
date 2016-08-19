@@ -214,8 +214,8 @@ if __name__ == '__main__':
     # Convert Lena Tiff image to raw format
     #
     raw_file = convert_to_raw('Lena.tiff')
-    exercise(raw_file)
-    quit()
+    # exercise(raw_file)
+    # quit()
 
     #
     # Check bit eaxctness between Cpu and Gpu processing
