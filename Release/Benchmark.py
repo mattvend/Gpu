@@ -201,9 +201,9 @@ def exercise(input_raw_file):
 
         Returns: null
     """
-    for device in ['cpu','gpu']:
+    for device in ['gpu']:
         for interp in ['bl']:
-            for (w,h) in ((256, 300),(2000, 1000),(1000, 2000),(8000, 4000)):
+            for (w,h) in ((256, 300),(600, 600),(2000, 1000),(1000, 2000),(8000, 4000)):
                 (t, f) = interpolate(input_raw_file, device + '_' + interp + '_lena.dat', device, 1, interp, w, h)
                 convert_to_jpg(f)
  
@@ -214,8 +214,8 @@ if __name__ == '__main__':
     # Convert Lena Tiff image to raw format
     #
     raw_file = convert_to_raw('Lena.tiff')
-    # exercise(raw_file)
-    # quit()
+    exercise(raw_file)
+    quit()
 
     #
     # Check bit eaxctness between Cpu and Gpu processing

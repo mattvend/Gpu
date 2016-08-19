@@ -199,18 +199,15 @@ void ImCpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_height)
 {
 	unsigned short     X, Y;
-	unsigned short     Xp1, Xp2, Xp3, Xp4;
-	unsigned short     Yp1, Yp2, Yp3, Yp4;
-	unsigned short     Integer;
 	void				*new_pxl;
 
 	/* Compute scaling factor for each dimension */
 	float HeightScaleFactor = ((float)height / (float)new_height);
 	float WidthScaleFactor = ((float)width / (float)new_width);
 
-	float xdest, ydest;
-	double alphax, alphay;
+	double *ax, *ay;
 	float *xd, *yd;
+	unsigned short *Ix1, *Ix2, *Iy1, *Iy2;
 
 	/* Allocate memory for the pixels */
 	if (8 == bpp)
@@ -218,6 +215,13 @@ void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		new_pxl = new char[sizeof(char) * new_width *new_height *dimension];
 		xd = new float[new_width];
 		yd = new float[new_height];
+		Ix1 = new unsigned short[new_width];
+		Ix2 = new unsigned short[new_width];
+		Iy1 = new unsigned short[new_height];
+		Iy2 = new unsigned short[new_height];
+		
+		ax = new double[new_width];
+		ay = new double[new_height];
 	}
 	else if (16 == bpp)
 	{
@@ -226,12 +230,58 @@ void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 
 	for (Y = 0; Y < new_height; Y++)
 	{
-		yd[Y] = (float)(Y + .5)*HeightScaleFactor;
+		float ydest = (float)(Y + .5)*HeightScaleFactor;
+		yd[Y] = ydest;
+
+		if (ydest <= 0.5){
+			ay[Y] = 1;
+			Iy1[Y] = 0;
+			Iy2[Y] = 0;
+		}
+
+		if ((ydest > 0.5) && (ydest < (height - 1 + 0.5)))
+		{
+			/* Compute Alpha x value used to perform interpolation */
+			unsigned short Integer = (unsigned short)(ydest - 0.5);
+			ay[Y] = (float)((ydest - 0.5) - Integer);
+			Iy1[Y] = Integer;
+			Iy2[Y] = Iy1[Y] + 1;
+		}
+
+		if (ydest >= (height - 1 + 0.5))
+		{
+			ay[Y] = 0;
+			Iy1[Y] = height - 1;
+			Iy2[Y] = height - 1;
+		}
 	}
 
 	for (X = 0; X < new_width; X++)
 	{
-		xd[X] = (float)(X + .5)*WidthScaleFactor;
+		float xdest = (float)(X + .5)*WidthScaleFactor;
+		xd[X] = xdest;
+
+		if (xdest <= 0.5){
+			ax[X] = 1;
+			Ix1[X] = 0;
+			Ix2[X] = 0;
+		}
+
+		if ( (xdest > 0.5) && (xdest < (width - 1 + 0.5)))
+		{
+			/* Compute Alpha x value used to perform interpolation */
+     		unsigned short Integer = (unsigned short)(xdest - 0.5);
+			ax[X] = (float)((xdest - 0.5) - Integer);
+			Ix1[X] = Integer;
+			Ix2[X] = Ix1[X] + 1;
+		}
+
+		if (xdest >= (width - 1 + 0.5))
+		{
+			ax[X] = 0;
+			Ix1[X] = width - 1;
+			Ix2[X] = width - 1;
+		}
 	}
 
 	/* Compute pixel intensity in destination image */
@@ -239,120 +289,26 @@ void ImCpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 	{
 		for (X = 0; X < new_width; X++)
 		{
-			/*
-			* xdest and ydest are coordinates of destination pixel in the original image
-			*/
-			xdest = xd[X];
-			ydest = yd[Y];
-
-			/* Processing pixels in the top left corner */
-			if ((xdest < 0.5) && (ydest < 0.5))
-			{
-				ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, 0, 0, width);
-			}
-
-			/* Processing pixels in the top center */
-			if ((xdest > 0.5) && (ydest < 0.5) && (xdest < (width - 1 + 0.5)))
-			{
-				/* Compute Alpha x value used to perform interpolation */
-
-				Integer = (unsigned short)(xdest - 0.5);
-				alphax = (float)((xdest - 0.5) - Integer);
-				Xp1 = Integer;
-				Xp2 = Xp1 + 1;
-
-				/* Perform bilinear interpolation */
-				ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphax)*ImPxl(pxl, Xp1, 0, width) + alphax*ImPxl(pxl, Xp2, 0, width));
-			}
-
-			/* Processing pixels in the top right corner */
-			if ((ydest < 0.5) && (xdest >(width - 1 + 0.5)))
-			{
-				/* Taking last pixel of the first row */
-				ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, width - 1, 0, width);
-			}
-
-			/* Processing pixels in left side, center */
-			if ((xdest < 0.5) && (ydest > 0.5) && (ydest < (height - 1 + 0.5)))
-			{
-				/* Compute Alpha y value used to perform interpolation */
-				Integer = (unsigned short)(ydest - 0.5);
-				alphay = (float)((ydest - 0.5) - Integer);
-
-				Yp1 = Integer;
-				Yp3 = Yp1 + 1;
-
-				/* Perform bilinear interpolation */
-				ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphay)*ImPxl(pxl, 0, Yp1, width) + alphay*ImPxl(pxl, 0, Yp3, width));
-			}
-
-			/* Processing pixels in the center */
-			if ((xdest > 0.5) && (ydest > 0.5) && (xdest < (width - 1 + 0.5)) && (ydest < (height - 1 + 0.5)))
-			{
-				/*
-				* Compute Alpha x and Alpha y values used to perform interpolation
-				*/
-				Integer = (unsigned short)(xdest - 0.5);
-				alphax = (float)((xdest - 0.5) - Integer);
-				Xp1 = Xp3 = Integer;
-				Xp2 = Xp4 = Xp1 + 1;
-
-				Integer = (unsigned short)(ydest - 0.5);
-				alphay = (float)((ydest - 0.5) - Integer);
-
-				Yp1 = Yp2 = Integer;
-				Yp3 = Yp4 = Yp1 + 1;
-
-				/* Perform bilinear interpolation */
-				ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphax)*(1 - alphay)*ImPxl(pxl, Xp1, Yp1, width) + alphax*(1 - alphay)*ImPxl(pxl, Xp2, Yp2, width) + (1 - alphax)*alphay*ImPxl(pxl, Xp3, Yp3, width) + alphay*alphax*ImPxl(pxl, Xp4, Yp4, width));
-			}
-
-			/* Processing pixels in right side, center */
-			if ((xdest > (width - 1 + 0.5)) && (ydest > 0.5) && (ydest < (height - 1 + 0.5)))
-			{
-				/*
-				* Compute Alpha y values used to perform interpolation
-				*/
-				Integer = (unsigned short)(ydest - 0.5);
-				alphay = (float)((ydest - 0.5) - Integer);
-
-				Yp1 = Yp2 = Integer;
-				Yp3 = Yp4 = Yp1 + 1;
-
-				/* Perform bilinear interpolation */
-				ImPxl(new_pxl, X, Y, new_width) =(unsigned char)((1 - alphay)*ImPxl(pxl, (width - 1), Yp1, width) + alphay*ImPxl(pxl, (width - 1), Yp3, width));
-			}
-
-			/* Processing pixels in the lower left corner */
-			if ((xdest < 0.5) && (ydest >(height - 1 + 0.5)))
-			{
-				ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, 0, height - 1, width);
-			}
-
-			/* Processing pixels in bottom , center */
-			if ((xdest > 0.5) && (xdest < (width - 1 + 0.5)) && (ydest >(height - 1 + 0.5)))
-			{
-				/*
-				* Compute Alpha x values used to perform interpolation
-				*/
-				Integer = (unsigned short)(xdest - 0.5);
-				alphax = (float)((xdest - 0.5) - Integer);
-				Xp1 = Integer;
-				Xp2 = Xp1 + 1;
-
-				/* Perform bilinear interpolation */
-				ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphax)*ImPxl(pxl, Xp1, height - 1, width) + alphax*ImPxl(pxl, Xp2, height - 1, width));
-			}
-
-			/* Processing pixels in the lower right corner */
-			if ((xdest > (width - 1 + 0.5)) && (ydest > (height - 1 + 0.5)))
-			{
-				ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, width - 1, height - 1, width);
-			}
+			/* Perform bilinear interpolation */
+			ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - ax[X])*(1 - ay[Y])* ImPxl(pxl, Ix1[X], Iy1[Y], width) + \
+																   ax[X] *(1 - ay[Y])* ImPxl(pxl, Ix2[X], Iy1[Y], width) + \
+																   (1 - ax[X])*ay[Y] * ImPxl(pxl, Ix1[X], Iy2[Y], width) + \
+      															       ay[Y] * ax[X] * ImPxl(pxl, Ix2[X], Iy2[Y], width));
 		}
 	}
 
 	delete(pxl);
+	delete(xd);
+	delete(yd);
+
+	delete(Ix1);
+	delete(Ix2);
+	delete(Iy1);
+	delete(Iy2);
+
+	delete(ax);
+	delete(ay);
+
 	pxl = new_pxl;
 
 	width = new_width;
