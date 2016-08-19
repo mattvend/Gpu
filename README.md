@@ -65,7 +65,7 @@ Here are the results, produced by Benchmark.py
 Rewrote the NN algo using ![CUDA streams][CUDA streams] and ![CUDA events][CUDA events] and got a nice improvement. Now NN interpolation on Gpu performs 3 times faster than its Cpu conterpart. Note that all the synchro mechanism could have been done in another way by using the __syncthreads() method and some shared memory between threads.
 
 #### Edit 19/8
-Rewrote the BL algo with similar optimisations as for the NN interpolation and could divide the running time by 2 on the GPU on top on what has been already achieved. Issues still pending for some interpolations parameters, algo works well for 8000, 4000 use case.
+Rewrote the BL algo with similar optimisations as for the NN interpolation and could divide the running time by 2 on the GPU on top on what has been already achieved. Issues still pending for some interpolations parameters, algo works well for 8000, 4000 use case. Still to be committed and debugged.
 
 <!---
 ## Bonus
