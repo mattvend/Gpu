@@ -32,70 +32,11 @@ __global__ void ComputeXDest(float *xdest, float WidthScaleFactor)
 	xdest[idx] = (float)(idx + .5)*WidthScaleFactor;
 }
 
-__global__ void ComputeXDestBL(float WidthScaleFactor, unsigned short width, double *ax, unsigned short *Ix1, unsigned short *Ix2)
-{
-	unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	float xdest = (float)(idx + .5)*WidthScaleFactor;
-
-	if (xdest <= 0.5){
-		ax[idx] = 1;
-		Ix1[idx] = 0;
-		Ix2[idx] = 0;
-	}
-
-	if ((xdest > 0.5) && (xdest < (width - 1 + 0.5)))
-	{
-		/* Compute Alpha x value used to perform interpolation */
-		unsigned short Integer = (unsigned short)(xdest - 0.5);
-		ax[idx] = (float)((xdest - 0.5) - Integer);
-		Ix1[idx] = Integer;
-		Ix2[idx] = Ix1[idx] + 1;
-	}
-
-	if (xdest >= (width - 1 + 0.5))
-	{
-		ax[idx] = 0;
-		Ix1[idx] = width - 1;
-		Ix2[idx] = width - 1;
-	}
-}
-
 __global__ void ComputeYDest(float *ydest, float HeightScaleFactor)
 {
 	unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 	ydest[idx] = (float)(idx + .5)*HeightScaleFactor;
 }
-
-__global__ void ComputeYDestBL(float HeightScaleFactor, unsigned short heigth, double *ay, unsigned short *Iy1, unsigned short *Iy2)
-{
-	unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	float ydest = (float)(idx + .5)*HeightScaleFactor;
-
-	if (ydest <= 0.5){
-		ay[idx] = 1;
-		Iy1[idx] = 0;
-		Iy2[idx] = 0;
-	}
-
-	if ((ydest > 0.5) && (ydest < (heigth - 1 + 0.5)))
-	{
-		/* Compute Alpha x value used to perform interpolation */
-		unsigned short Integer = (unsigned short)(ydest - 0.5);
-		ay[idx] = (float)((ydest - 0.5) - Integer);
-		Iy1[idx] = Integer;
-		Iy2[idx] = Iy1[idx] + 1;
-	}
-
-	if (ydest >= (heigth - 1 + 0.5))
-	{
-		ay[idx] = 0;
-		Iy1[idx] = heigth - 1;
-		Iy2[idx] = heigth - 1;
-	}
-}
-
-
-
 
 __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float *xdest, float *ydest, unsigned short new_width, unsigned short width)
 {
@@ -114,16 +55,133 @@ __global__ void KernelInterpolateNN(void *pxl, void *new_pxl, float *xdest, floa
 
 #define ImPxl(IM,X,Y,W)     *((unsigned char*)IM + (X) + (Y)*W)
 
-__global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned short new_width, unsigned short width, double *ax, unsigned short *Ix1, unsigned short *Ix2, double *ay, unsigned short *Iy1, unsigned short *Iy2)
+__global__ void KernelInterpolateBilinear(void *pxl, void *new_pxl, unsigned short new_width, unsigned short width, unsigned short new_height, unsigned short height, float *xd, float *yd)
 {
 	unsigned short  X = (blockIdx.x * blockDim.x) + threadIdx.x;
 	unsigned short  Y = (blockIdx.y * blockDim.y) + threadIdx.y;
-	
-	/* Perform bilinear interpolation */
-	ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - ax[X])*(1 - ay[Y])* ImPxl(pxl, Ix1[X], Iy1[Y], width) + \
-														  ax[X] * (1 - ay[Y])* ImPxl(pxl, Ix2[X], Iy1[Y], width) + \
-														   (1 - ax[X])*ay[Y] * ImPxl(pxl, Ix1[X], Iy2[Y], width) + \
-															   ay[Y] * ax[X] * ImPxl(pxl, Ix2[X], Iy2[Y], width));
+	unsigned short	Xp1, Xp2, Xp3, Xp4;
+	unsigned short	Yp1, Yp2, Yp3, Yp4;
+	unsigned short	Integer;
+
+	/* Compute scaling factor for each dimension */
+	float xdest, ydest;
+	double alphax, alphay;
+
+	/*
+	* xdest and ydest are coordinates of destination pixel in the original image
+	*/
+	xdest = xd[X];
+	ydest = yd[Y];
+
+	/* Processing pixels in the top left corner */
+	if ((xdest < 0.5) && (ydest < 0.5))
+	{
+		ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, 0, 0, width);
+	}
+
+	/* Processing pixels in the top center */
+	if ((xdest > 0.5) && (ydest < 0.5) && (xdest < (width - 1 + 0.5)))
+	{
+		/* Compute Alpha x value used to perform interpolation */
+
+		Integer = (unsigned short)(xdest - 0.5);
+		alphax = (float)((xdest - 0.5) - Integer);
+		Xp1 = Integer;
+		Xp2 = Xp1 + 1;
+
+		// (1 - t)*v0 + t*v1; // fma(t, v1, fma(-t, v0, v0))
+
+		/* Perform bilinear interpolation */
+		ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphax)*ImPxl(pxl, Xp1, 0, width) + alphax*ImPxl(pxl, Xp2, 0, width));
+		// ImPxl(new_pxl, X, Y, new_width) = (unsigned char)fma(alphax, ImPxl(pxl, Xp2, 0, width), fma(-alphax, ImPxl(pxl, Xp1, 0, width), ImPxl(pxl, Xp1, 0, width)));
+
+	}
+
+	/* Processing pixels in the top right corner */
+	if ((ydest < 0.5) && (xdest >(width - 1 + 0.5)))
+	{
+		/* Taking last pixel of the first row */
+		ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, width - 1, 0, width);
+	}
+
+	/* Processing pixels in left side, center */
+	if ((xdest < 0.5) && (ydest > 0.5) && (ydest < (height - 1 + 0.5)))
+	{
+		/* Compute Alpha y value used to perform interpolation */
+			Integer = (unsigned short)(ydest - 0.5);
+		alphay = (float)((ydest - 0.5) - Integer);
+
+		Yp1 = Integer;
+		Yp3 = Yp1 + 1;
+
+		/* Perform bilinear interpolation */
+		ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphay)*ImPxl(pxl, 0, Yp1, width) + alphay*ImPxl(pxl, 0, Yp3, width));
+	}
+
+	/* Processing pixels in the center */
+	if ((xdest > 0.5) && (ydest > 0.5) && (xdest < (width - 1 + 0.5)) && (ydest < (height - 1 + 0.5)))
+	{
+		/*
+		* Compute Alpha x and Alpha y values used to perform interpolation
+		*/
+		Integer = (unsigned short)(xdest - 0.5);
+		alphax = (float)((xdest - 0.5) - Integer);
+		Xp1 = Xp3 = Integer;
+		Xp2 = Xp4 = Xp1 + 1;
+
+		Integer = (unsigned short)(ydest - 0.5);
+		alphay = (float)((ydest - 0.5) - Integer);
+
+		Yp1 = Yp2 = Integer;
+		Yp3 = Yp4 = Yp1 + 1;
+
+		/* Perform bilinear interpolation */
+		ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphax)*(1 - alphay)*ImPxl(pxl, Xp1, Yp1, width) + alphax*(1 - alphay)*ImPxl(pxl, Xp2, Yp2, width) + (1 - alphax)*alphay*ImPxl(pxl, Xp3, Yp3, width) + alphay*alphax*ImPxl(pxl, Xp4, Yp4, width));
+	}
+
+	/* Processing pixels in right side, center */
+	if ((xdest > (width - 1 + 0.5)) && (ydest > 0.5) && (ydest < (height - 1 + 0.5)))
+	{
+		/*
+		* Compute Alpha y values used to perform interpolation
+		*/
+		Integer = (unsigned short)(ydest - 0.5);
+		alphay = (float)((ydest - 0.5) - Integer);
+
+		Yp1 = Yp2 = Integer;
+		Yp3 = Yp4 = Yp1 + 1;
+
+		/* Perform bilinear interpolation */
+		ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphay)*ImPxl(pxl, (width - 1), Yp1, width) + alphay*ImPxl(pxl, (width - 1), Yp3, width));
+	}
+
+	/* Processing pixels in the lower left corner */
+	if ((xdest < 0.5) && (ydest >(height - 1 + 0.5)))
+	{
+		ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, 0, height - 1, width);
+	}
+
+	/* Processing pixels in bottom , center */
+	if ((xdest > 0.5) && (xdest < (width - 1 + 0.5)) && (ydest >(height - 1 + 0.5)))
+	{
+		/*
+		* Compute Alpha x values used to perform interpolation
+		*/
+		Integer = (unsigned short)(xdest - 0.5);
+		alphax = (float)((xdest - 0.5) - Integer);
+		Xp1 = Integer;
+		Xp2 = Xp1 + 1;
+
+		/* Perform bilinear interpolation */
+		ImPxl(new_pxl, X, Y, new_width) = (unsigned char)((1 - alphax)*ImPxl(pxl, Xp1, height - 1, width) + alphax*ImPxl(pxl, Xp2, height - 1, width));
+	}
+
+	/* Processing pixels in the lower right corner */
+	if ((xdest > (width - 1 + 0.5)) && (ydest > (height - 1 + 0.5)))
+	{
+		ImPxl(new_pxl, X, Y, new_width) = ImPxl(pxl, width - 1, height - 1, width);
+	}
+
 	return;
 }
 
@@ -172,20 +230,16 @@ void ImGpu::InterpolateNN(unsigned short new_width, unsigned short new_height)
 		cudaEventCreate(&event);
 		cudaEventCreate(&event2);
 
+		cudaEventRecord(event, streamA);
+		cudaEventRecord(event2, streamB);
 
 		ComputeXDest << < (new_width + 96 - 1) / 96, 96, 0, streamA >> > (xdest, WidthScaleFactor);
-		cudaEventRecord(event, streamA);
-
-
 		ComputeYDest << < (new_height + 96 - 1) / 96, 96,0, streamB >> > (ydest, HeightScaleFactor);
-		cudaEventRecord(event2, streamB);
 
 		// Do not call KernelInterpolateNN until computation needed has been done in ComputeXDest and ComputeYDest
 		// Ensuring correct stream synchro with cudaStreamWaitEvent
-		
 		cudaStreamWaitEvent(streamC, event, 0);
 		cudaStreamWaitEvent(streamC, event2, 0);
-
 		KernelInterpolateNN << < numBlocks, threadsPerBlock,0, streamC >> > (dev_pxl, dev_new_pxl, xdest, ydest, new_width, width);
 	}
 
@@ -225,8 +279,7 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 {
 	void *dev_new_pxl;
 	cudaError_t cudaStatus;
-	double *ax, *ay;
-	unsigned short *Ix1, *Ix2, *Iy1, *Iy2;
+	float *xdest, *ydest;
 
 	/* Compute scaling factor for each dimension */
 	float HeightScaleFactor = ((float)height / (float)new_height);
@@ -239,13 +292,17 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		goto Error;
 	}
 
-	cudaStatus = cudaMalloc((void**)&Ix1, new_width * sizeof(unsigned short));
-	cudaStatus = cudaMalloc((void**)&Ix2, new_width * sizeof(unsigned short));
-	cudaStatus = cudaMalloc((void**)&Iy1, new_height * sizeof(unsigned short));
-	cudaStatus = cudaMalloc((void**)&Iy2, new_height * sizeof(unsigned short));
-	
-	cudaStatus = cudaMalloc((void**)&ax, new_width * sizeof(double));
-	cudaStatus = cudaMalloc((void**)&ay, new_height * sizeof(double));
+	cudaStatus = cudaMalloc((void**)&xdest, new_width * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed!");
+		goto Error;
+	}
+
+	cudaStatus = cudaMalloc((void**)&ydest, new_height * sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed!");
+		goto Error;
+	}
 
 	// Launch a kernel on the GPU with one thread for each element.
 	{
@@ -261,10 +318,10 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		cudaEventCreate(&event);
 		cudaEventCreate(&event2);
 
-		ComputeXDestBL << < (new_width + 96 - 1) / 96, 96, 0, streamA >> > (WidthScaleFactor, width, ax, Ix1, Ix2);
+		ComputeXDest << < (new_width + 96 - 1) / 96, 96, 0, streamA >> > (xdest, WidthScaleFactor);
 		cudaEventRecord(event, streamA);
 
-		ComputeYDestBL << < (new_height + 96 - 1) / 96, 96, 0, streamB >> > ( HeightScaleFactor, height, ay, Iy1, Iy2);
+		ComputeYDest << < (new_height + 96 - 1) / 96, 96, 0, streamB >> > (ydest, HeightScaleFactor);
 		cudaEventRecord(event2, streamB);
 
 		// Do not call KernelInterpolateNN until computation needed has been done in ComputeXDest and ComputeYDest
@@ -272,7 +329,7 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 		cudaStreamWaitEvent(streamC, event, 0);
 		cudaStreamWaitEvent(streamC, event2, 0);
 
-		KernelInterpolateBilinear << < numBlocks, threadsPerBlock, 0, streamC >> > (dev_pxl, dev_new_pxl, new_width, width, ax, Ix1, Ix2, ay, Iy1, Iy2);
+		KernelInterpolateBilinear << < numBlocks, threadsPerBlock, 0, streamC >> > (dev_pxl, dev_new_pxl, new_width, width, new_height, height, xdest, ydest);
 	}
 
 	// Check for any errors launching the kernel
@@ -292,30 +349,17 @@ void ImGpu::InterpolateBilinear(unsigned short new_width, unsigned short new_hei
 
 	// Free all resources
 	cudaFree(dev_pxl);
+	cudaFree(xdest);
+	cudaFree(ydest);
 
-	cudaFree(Ix1);
-	cudaFree(Ix2);
-	cudaFree(Iy1);
-	cudaFree(Iy2);
-
-	cudaFree(ax);
-	cudaFree(ay);
-	
 	dev_pxl = dev_new_pxl;
 
 	width = new_width;
 	height = new_height;
 
 	return;
-
 Error:
 	cudaFree(dev_new_pxl);
-	
-	cudaFree(Ix1);
-	cudaFree(Ix2);
-	cudaFree(Iy1);
-	cudaFree(Iy2);
-
-	cudaFree(ax);
-	cudaFree(ay);
+	cudaFree(xdest);
+	cudaFree(ydest);
 }
