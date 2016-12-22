@@ -1,5 +1,10 @@
 # Gpu
 
+This project is deprecated, please go to [GpuStreams](https://github.com/mattvend/GpuStreams)
+---------------------------------------------------------------------------------------------
+GpuStreams contains bug fixes and improvements
+----------------------------------------------
+
 ## Goal of this project
 Benchmark interpolation algorithms running on GPU againt their CPU version using Lena as input image.
   
